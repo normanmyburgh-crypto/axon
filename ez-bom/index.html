@@ -211,58 +211,35 @@ function setMode(mode){
   populateKitSelect();clearPreview();
 }
 async function fetchData(){
-  const loadEl=document.getElementById('kitLoading');
-  loadEl.style.display='flex';
+  document.getElementById('kitLoading').style.display='flex';
   rawData=[];
   try{
     const r=await fetch(BOM_URL,{redirect:'follow'});
-    const text=await r.text();
-    let json;
-    try{json=JSON.parse(text)}catch(e){throw new Error('Non-JSON response')}
-    // GAS can return: array of objects, {data:[...]}, or array-of-arrays [[header],[row],...]
-    if(Array.isArray(json)){
-      if(json.length&&Array.isArray(json[0])){
-        // Array of arrays — first row is header
-        const headers=json[0].map(h=>String(h).trim());
-        rawData=json.slice(1).map(row=>{
-          const obj={};
-          headers.forEach((h,i)=>obj[h]=row[i]??'');
-          return obj;
-        });
-      } else {
-        rawData=json;
-      }
-    } else if(json&&Array.isArray(json.data)){
-      rawData=json.data;
-    } else if(json&&Array.isArray(json.rows)){
-      rawData=json.rows;
-    } else {
-      throw new Error('Unrecognised shape');
-    }
-    // Normalise column names to expected keys
-    rawData=rawData.map(r=>({
-      KitName:   r.KitName||r['Kit Name']||r['Kit']||r['kitName']||r['KITNAME']||r['kit_name']||'',
-      Description: r.Description||r['description']||r['DESCRIPTION']||r['Item Description']||r['Desc']||'',
-      StockCode: r.StockCode||r['Stock Code']||r['stockCode']||r['STOCKCODE']||r['Code']||r['SKU']||'',
-      Qty:       r.Qty||r['qty']||r['QTY']||r['Quantity']||r['quantity']||r['QUANTITY']||1,
-    })).filter(r=>r.KitName);
-    if(!rawData.length) throw new Error('Empty after normalise');
-    showApiStatus('LIVE','CONNECTED TO API');
+    const json=await r.json();
+    // API returns {rooftop:[{kitName,stockCode,description,qty},...], ground:[...]}
+    const rooftop=(json.rooftop||[]).map(r=>({KitName:r.kitName,StockCode:r.stockCode,Description:r.description,Qty:parseFloat(r.qty)||1}));
+    const ground=(json.ground||[]).map(r=>({KitName:r.kitName,StockCode:r.stockCode,Description:r.description,Qty:parseFloat(r.qty)||1,isGround:true}));
+    rawData=[...rooftop,...ground];
+    if(!rawData.length) throw new Error('Empty dataset');
+    showApiStatus('LIVE',`LIVE — ${rooftop.length} ROOFTOP / ${ground.length} GROUND ITEMS`);
   } catch(e){
-    console.warn('BOM API error, using demo data:',e.message);
+    console.warn('[AXON BOM] Fetch failed:',e.message);
     rawData=generateDemoData();
-    showApiStatus('DEMO','OFFLINE — DEMO DATA');
+    showApiStatus('DEMO','DEMO DATA — API UNAVAILABLE');
   }
-  loadEl.style.display='none';
+  document.getElementById('kitLoading').style.display='none';
   populateKitSelect();
 }
 function showApiStatus(type,msg){
   let el=document.getElementById('apiStatus');
-  if(!el){el=document.createElement('div');el.id='apiStatus';el.style.cssText='font-family:"DM Mono",monospace;font-size:9px;letter-spacing:2px;padding:5px 10px;border:1px solid;margin-bottom:10px;display:flex;align-items:center;gap:6px';
-  document.getElementById('kitSelect').parentNode.appendChild(el)}
+  if(!el){
+    el=document.createElement('div');el.id='apiStatus';
+    el.style.cssText='font-family:"DM Mono",monospace;font-size:9px;letter-spacing:2px;padding:6px 10px;border:1px solid;margin-bottom:10px;display:flex;align-items:flex-start;gap:6px;line-height:1.5';
+    document.getElementById('kitSelect').parentNode.insertBefore(el,document.getElementById('kitSelect'));
+  }
   if(type==='LIVE'){el.style.color='#00FFD9';el.style.borderColor='rgba(0,255,217,0.3)';el.style.background='rgba(0,255,217,0.05)'}
-  else{el.style.color='#CFAE36';el.style.borderColor='rgba(207,174,54,0.3)';el.style.background='rgba(207,174,54,0.05)'}
-  el.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0"></span>${msg}`;
+  else{el.style.color='#CFAE36';el.style.borderColor='rgba(207,174,54,0.3)';el.style.background='rgba(207,174,54,0.06)'}
+  el.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;margin-top:3px"></span><span>${msg}</span>`;
 }
 function generateDemoData(){
   const kits=['K-ROOF-KLIP-12','K-ROOF-TILE-10','K-ROOF-IBR-14','K-GND-TABLE-2P','K-GND-TABLE-4P'];
@@ -280,7 +257,7 @@ function generateDemoData(){
   kits.forEach(kit=>items.forEach(item=>rows.push({KitName:kit,Description:item.Description,StockCode:item.StockCode,Qty:item.BaseQty})));
   return rows;
 }
-function findRows(kitName){return rawData.filter(row=>{const kn=row.KitName||row['Kit Name']||row['Kit']||row['kitName']||'';return kn.toString().toLowerCase()===kitName.toLowerCase()})}
+function findRows(kitName){return rawData.filter(row=>row.KitName&&row.KitName.toLowerCase()===kitName.toLowerCase())}
 function getMultiplier(rows,count){return rows.map(row=>{const baseQty=parseFloat(row.Qty||row.qty||row.Quantity||row.quantity||1);return{...row,CalcQty:Math.ceil(baseQty*count)}})}
 function generateBOM(){
   const kit=document.getElementById('kitSelect').value;
@@ -292,7 +269,9 @@ function generateBOM(){
 }
 function populateKitSelect(){
   const sel=document.getElementById('kitSelect');
-  const kits=[...new Set(rawData.map(r=>r.KitName||r['Kit Name']||r['Kit']||r['kitName']||'').filter(Boolean))];
+  const isGround=currentMode==='ground';
+  const modeData=rawData.filter(r=>isGround?r.isGround:!r.isGround);
+  const kits=[...new Set(modeData.map(r=>r.KitName).filter(Boolean))];
   sel.innerHTML='<option value="">— Select Kit —</option>';
   kits.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;sel.appendChild(o)});
 }
