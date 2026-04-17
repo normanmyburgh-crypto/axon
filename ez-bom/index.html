@@ -19,6 +19,7 @@ html{font-size:14px}
 body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,217,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,217,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border)}
+.kit-badge-axon{font-family:"DM Mono",monospace;font-size:9px;letter-spacing:2px;color:var(--teal);margin-top:8px;min-height:16px;transition:color 0.2s}
 header{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:14px 32px;border-bottom:1px solid var(--border);background:rgba(8,8,8,0.92);backdrop-filter:blur(20px)}
 .brand{display:flex;align-items:center;text-decoration:none;color:inherit}
 .brand-logo{height:28px;width:auto;object-fit:contain}
@@ -139,19 +140,53 @@ header{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify
     </div>
     <div class="config-card" id="configCard">
       <div class="section-label">CONFIGURATION</div>
-      <div class="form-row"><label class="form-label">SECTION / ARRAY NAME</label><input class="form-input" id="sectionName" placeholder="e.g. East Wing Array A"/></div>
-      <div class="form-row">
-        <label class="form-label" id="kitTypeLabel">ROOF INTERFACE / KIT TYPE</label>
-        <div class="kit-loading" id="kitLoading"><div class="spinner-sm"></div>LOADING KITS...</div>
-        <select class="form-select" id="kitSelect"><option value="">— Select Kit —</option></select>
+
+      <!-- ROOFTOP FIELDS -->
+      <div id="rooftopFields">
+        <div class="form-row"><label class="form-label">SECTION / ARRAY NAME</label><input class="form-input" id="sectionName" placeholder="e.g. North Roof"/></div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label class="form-label">ROOF INTERFACE</label>
+            <select class="form-select" id="rtInterface" onchange="updateKitPreview()">
+              <option value="TILE HOOK">Tile Hook</option>
+              <option value="IBR">IBR</option>
+              <option value="CORRUGATED">Corrugated</option>
+              <option value="KLIPLOK">Kliplok</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">PANEL QUANTITY</label>
+            <input class="form-input" id="rtPanels" type="number" min="1" value="10" oninput="updateKitPreview()"/>
+          </div>
+        </div>
+        <div class="form-row"><label class="form-label">NUMBER OF STRINGS</label><input class="form-input" id="rtStrings" type="number" min="1" value="1"/></div>
+        <div class="kit-badge-axon" id="rtKitBadge"></div>
       </div>
-      <div class="form-grid">
-        <div class="form-row"><label class="form-label" id="multiplierLabel">NO. OF STRINGS</label><input class="form-input" id="multiplierInput" type="number" min="1" value="1"/></div>
-        <div class="form-row"><label class="form-label">PANEL QUANTITY</label><input class="form-input" id="panelQty" type="number" min="1" value="10"/></div>
+
+      <!-- GROUND MOUNT FIELDS -->
+      <div id="groundFields" style="display:none">
+        <div class="form-row"><label class="form-label">SECTION / ARRAY NAME</label><input class="form-input" id="gmSectionName" placeholder="e.g. East Field"/></div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label class="form-label">TABLE SIZE (PANELS)</label>
+            <select class="form-select" id="gmSize" onchange="updateKitPreview()">
+              <option value="12">12 Panel</option>
+              <option value="18">18 Panel</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">NUMBER OF TABLES</label>
+            <input class="form-input" id="gmTables" type="number" min="1" value="1"/>
+          </div>
+        </div>
+        <div class="kit-badge-axon" id="gmKitBadge" style="color:var(--purple)"></div>
       </div>
-      <div class="section-label" style="margin-top:8px">PREVIEW BOM</div>
+
+      <div class="kit-loading" id="kitLoading" style="margin-top:8px"><div class="spinner-sm"></div>LOADING DATA...</div>
+
+      <div class="section-label" style="margin-top:14px">PREVIEW BOM</div>
       <div class="preview-card" id="previewCard">
-        <p class="preview-empty" id="previewEmpty">SELECT A KIT TO PREVIEW</p>
+        <p class="preview-empty" id="previewEmpty">CONFIGURE ABOVE TO PREVIEW</p>
         <table class="preview-table" id="previewTable" style="display:none">
           <thead><tr><th>DESCRIPTION</th><th>STOCK CODE</th><th>QTY</th></tr></thead>
           <tbody id="previewBody"></tbody>
@@ -195,115 +230,155 @@ header{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify
 </div>
 <script>
 const BOM_URL='https://script.google.com/macros/s/AKfycbwOp4wqhAy6knch--Uhcz_iSLvAzMiVN3OZfsmgVa75vXaOF--FPap_RuuPidaYd8Mr/exec';
-let rawData=[],projectCart=[],currentMode='rooftop';
+let db=null,projectCart=[],currentMode='rooftop';
 const switcherBtn=document.getElementById('switcherBtn'),switcherMenu=document.getElementById('switcherMenu');
 switcherBtn.addEventListener('click',e=>{e.stopPropagation();switcherMenu.classList.toggle('open')});
 document.addEventListener('click',()=>switcherMenu.classList.remove('open'));
+
+// ── MODE ──
 function setMode(mode){
   currentMode=mode;const isPurple=mode==='ground';
   document.getElementById('btnRooftop').className='mode-btn'+(mode==='rooftop'?' active teal':'');
   document.getElementById('btnGround').className='mode-btn'+(mode==='ground'?' active purple':'');
   document.getElementById('configCard').classList.toggle('purple-mode',isPurple);
-  document.getElementById('kitTypeLabel').textContent=isPurple?'TABLE SIZE / KIT TYPE':'ROOF INTERFACE / KIT TYPE';
-  document.getElementById('multiplierLabel').textContent=isPurple?'NO. OF TABLES':'NO. OF STRINGS';
+  document.getElementById('rooftopFields').style.display=isPurple?'none':'';
+  document.getElementById('groundFields').style.display=isPurple?'':'none';
   document.getElementById('addBtn').className='action-btn btn-add'+(isPurple?' purple':'');
   document.getElementById('previewTable').className='preview-table'+(isPurple?' purple-table':'');
-  populateKitSelect();clearPreview();
+  clearPreview();
+  updateKitPreview();
 }
+
+// ── KIT NAME BUILDER (matches original logic exactly) ──
+function getKitName(){
+  if(currentMode==='rooftop'){
+    const iface=document.getElementById('rtInterface').value;
+    const panels=parseInt(document.getElementById('rtPanels').value)||0;
+    return panels>0?panels+' Panel '+iface:null;
+  }
+  return document.getElementById('gmSize').value+' Panel Ground Mount';
+}
+
+function getMultiplierValue(){
+  return Math.max(1,parseInt(currentMode==='rooftop'?document.getElementById('rtStrings').value:document.getElementById('gmTables').value)||1);
+}
+
+function getArrayName(){
+  const id=currentMode==='rooftop'?'sectionName':'gmSectionName';
+  return document.getElementById(id).value.trim()||('Array '+(projectCart.length+1));
+}
+
+function updateKitPreview(){
+  const kitName=getKitName();
+  const src=db?(currentMode==='rooftop'?db.rooftop:db.ground):[];
+  const badgeId=currentMode==='rooftop'?'rtKitBadge':'gmKitBadge';
+  const badge=document.getElementById(badgeId);
+  if(!kitName){badge.textContent='';return}
+  const matched=src.some(r=>r.kitName&&r.kitName.trim().toLowerCase()===kitName.trim().toLowerCase());
+  if(!db){badge.textContent='KIT: '+kitName;return}
+  if(matched){
+    badge.style.color=currentMode==='rooftop'?'var(--teal)':'var(--purple)';
+    badge.textContent='✓ KIT: '+kitName;
+  } else {
+    badge.style.color='var(--gold)';
+    badge.textContent='⚠ NOT FOUND: '+kitName;
+  }
+  previewBOM();
+}
+
+// ── FETCH ──
 async function fetchData(){
   document.getElementById('kitLoading').style.display='flex';
-  rawData=[];
   try{
     const r=await fetch(BOM_URL,{redirect:'follow'});
     const json=await r.json();
-    // API returns {rooftop:[{kitName,stockCode,description,qty},...], ground:[...]}
-    const rooftop=(json.rooftop||[]).map(r=>({KitName:r.kitName,StockCode:r.stockCode,Description:r.description,Qty:parseFloat(r.qty)||1}));
-    const ground=(json.ground||[]).map(r=>({KitName:r.kitName,StockCode:r.stockCode,Description:r.description,Qty:parseFloat(r.qty)||1,isGround:true}));
-    rawData=[...rooftop,...ground];
-    if(!rawData.length) throw new Error('Empty dataset');
-    showApiStatus('LIVE',`LIVE — ${rooftop.length} ROOFTOP / ${ground.length} GROUND ITEMS`);
+    db={rooftop:json.rooftop||[],ground:json.ground||[]};
+    if(!db.rooftop.length&&!db.ground.length) throw new Error('Empty');
+    showApiStatus('LIVE',`LIVE — ${db.rooftop.length} ROOFTOP / ${db.ground.length} GROUND ITEMS`);
   } catch(e){
-    console.warn('[AXON BOM] Fetch failed:',e.message);
-    rawData=generateDemoData();
+    console.warn('[AXON BOM]',e.message);
+    db=generateDemoDb();
     showApiStatus('DEMO','DEMO DATA — API UNAVAILABLE');
   }
   document.getElementById('kitLoading').style.display='none';
-  populateKitSelect();
+  updateKitPreview();
 }
+
 function showApiStatus(type,msg){
   let el=document.getElementById('apiStatus');
-  if(!el){
-    el=document.createElement('div');el.id='apiStatus';
-    el.style.cssText='font-family:"DM Mono",monospace;font-size:9px;letter-spacing:2px;padding:6px 10px;border:1px solid;margin-bottom:10px;display:flex;align-items:flex-start;gap:6px;line-height:1.5';
-    document.getElementById('kitSelect').parentNode.insertBefore(el,document.getElementById('kitSelect'));
-  }
+  if(!el){el=document.createElement('div');el.id='apiStatus';el.style.cssText='font-family:"DM Mono",monospace;font-size:9px;letter-spacing:2px;padding:6px 10px;border:1px solid;margin-bottom:10px;display:flex;align-items:center;gap:6px';document.getElementById('kitLoading').after(el)}
   if(type==='LIVE'){el.style.color='#00FFD9';el.style.borderColor='rgba(0,255,217,0.3)';el.style.background='rgba(0,255,217,0.05)'}
   else{el.style.color='#CFAE36';el.style.borderColor='rgba(207,174,54,0.3)';el.style.background='rgba(207,174,54,0.06)'}
-  el.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;margin-top:3px"></span><span>${msg}</span>`;
+  el.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0"></span><span>${msg}</span>`;
 }
-function generateDemoData(){
-  const kits=['K-ROOF-KLIP-12','K-ROOF-TILE-10','K-ROOF-IBR-14','K-GND-TABLE-2P','K-GND-TABLE-4P'];
-  const items=[
-    {Description:'Top Rail 1200mm',StockCode:'TR-1200',BaseQty:2},
-    {Description:'Bottom Rail 800mm',StockCode:'BR-800',BaseQty:2},
-    {Description:'L-Foot Bracket',StockCode:'LF-001',BaseQty:4},
-    {Description:'Mid Clamp',StockCode:'MC-001',BaseQty:6},
-    {Description:'End Clamp',StockCode:'EC-001',BaseQty:4},
-    {Description:'T-Bolt M8x30',StockCode:'TB-M8-30',BaseQty:8},
-    {Description:'Splice Bar',StockCode:'SB-001',BaseQty:2},
-    {Description:'Earth Clip',StockCode:'ECL-001',BaseQty:4},
-  ];
-  const rows=[];
-  kits.forEach(kit=>items.forEach(item=>rows.push({KitName:kit,Description:item.Description,StockCode:item.StockCode,Qty:item.BaseQty})));
-  return rows;
+
+function generateDemoDb(){
+  const rtKits=['10 Panel TILE HOOK','10 Panel IBR','10 Panel CORRUGATED','10 Panel KLIPLOK','20 Panel IBR'];
+  const gmKits=['12 Panel Ground Mount','18 Panel Ground Mount'];
+  const items=[{description:'Top Rail 1200mm',stockCode:'TR-1200',qty:2},{description:'L-Foot Bracket',stockCode:'LF-001',qty:4},{description:'Mid Clamp',stockCode:'MC-001',qty:6},{description:'End Clamp',stockCode:'EC-001',qty:4},{description:'T-Bolt M8x30',stockCode:'TB-M8-30',qty:8},{description:'Earth Clip',stockCode:'ECL-001',qty:4}];
+  const rooftop=[],ground=[];
+  rtKits.forEach(k=>items.forEach(i=>rooftop.push({kitName:k,...i})));
+  gmKits.forEach(k=>items.forEach(i=>ground.push({kitName:k,...i})));
+  return {rooftop,ground};
 }
-function findRows(kitName){return rawData.filter(row=>row.KitName&&row.KitName.toLowerCase()===kitName.toLowerCase())}
-function getMultiplier(rows,count){return rows.map(row=>{const baseQty=parseFloat(row.Qty||row.qty||row.Quantity||row.quantity||1);return{...row,CalcQty:Math.ceil(baseQty*count)}})}
-function generateBOM(){
-  const kit=document.getElementById('kitSelect').value;
-  if(!kit)return[];
-  const count=parseInt(document.getElementById('multiplierInput').value)||1;
-  const rows=findRows(kit);
-  if(!rows.length)return[];
-  return getMultiplier(rows,count);
+
+// ── CORE: findRows ──
+function findRows(kitName){
+  const src=currentMode==='rooftop'?db.rooftop:db.ground;
+  if(!kitName||!src) return [];
+  const needle=kitName.trim().toLowerCase();
+  return src.filter(r=>r.kitName&&r.kitName.trim().toLowerCase()===needle);
 }
-function populateKitSelect(){
-  const sel=document.getElementById('kitSelect');
-  const isGround=currentMode==='ground';
-  const modeData=rawData.filter(r=>isGround?r.isGround:!r.isGround);
-  const kits=[...new Set(modeData.map(r=>r.KitName).filter(Boolean))];
-  sel.innerHTML='<option value="">— Select Kit —</option>';
-  kits.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;sel.appendChild(o)});
+
+// ── CORE: getMultiplier ──
+function getMultiplier(rows,count){
+  return rows.map(row=>({...row,KitName:row.kitName,StockCode:row.stockCode,Description:row.description,Qty:row.qty,CalcQty:Math.ceil((parseFloat(row.qty)||1)*count)}));
 }
-document.getElementById('kitSelect').addEventListener('change',previewBOM);
-document.getElementById('multiplierInput').addEventListener('input',previewBOM);
-document.getElementById('panelQty').addEventListener('input',previewBOM);
+
+// ── PREVIEW ──
 function previewBOM(){
-  const bom=generateBOM();
+  if(!db) return;
+  const kitName=getKitName();
+  const count=getMultiplierValue();
+  const rows=findRows(kitName);
   const empty=document.getElementById('previewEmpty'),table=document.getElementById('previewTable'),body=document.getElementById('previewBody');
-  if(!bom.length){empty.style.display='block';table.style.display='none';return}
+  if(!rows.length){empty.style.display='block';table.style.display='none';return}
+  const bom=getMultiplier(rows,count);
   empty.style.display='none';table.style.display='table';
-  body.innerHTML=bom.map(row=>`<tr><td>${esc(row.Description||'')}</td><td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${esc(row.StockCode||'')}</td><td>${row.CalcQty}</td></tr>`).join('');
+  body.innerHTML=bom.map(row=>`<tr><td>${esc(row.description||'')}</td><td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${esc(row.stockCode||'')}</td><td>${row.CalcQty}</td></tr>`).join('');
 }
+
+// Wire up live preview on all inputs
+['rtInterface','rtPanels','rtStrings','gmSize','gmTables'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('input',()=>{updateKitPreview();});
+  if(el) el.addEventListener('change',()=>{updateKitPreview();});
+});
+
 function clearPreview(){
-  document.getElementById('kitSelect').value='';
-  document.getElementById('multiplierInput').value='1';
-  document.getElementById('panelQty').value='10';
-  document.getElementById('sectionName').value='';
+  ['sectionName','gmSectionName'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+  document.getElementById('rtPanels').value='10';
+  document.getElementById('rtStrings').value='1';
+  document.getElementById('gmTables').value='1';
   document.getElementById('previewEmpty').style.display='block';
   document.getElementById('previewTable').style.display='none';
   document.getElementById('previewBody').innerHTML='';
 }
+
+// ── CORE: addToProject ──
 function addToProject(){
-  const bom=generateBOM();
-  if(!bom.length){alert('Please select a kit first.');return}
-  const name=document.getElementById('sectionName').value.trim()||`Array ${projectCart.length+1}`;
-  const kit=document.getElementById('kitSelect').value;
-  const multiplier=parseInt(document.getElementById('multiplierInput').value)||1;
-  const panels=parseInt(document.getElementById('panelQty').value)||0;
-  projectCart.push({id:Date.now(),name,kit,mode:currentMode,multiplier,panels,items:bom});
+  if(!db){alert('Data still loading, please wait.');return}
+  const kitName=getKitName();
+  const count=getMultiplierValue();
+  const rows=findRows(kitName);
+  if(!rows.length){alert('No matching kit found: "'+kitName+'". Check your Roof Interface and Panel Quantity.');return}
+  const bom=getMultiplier(rows,count);
+  const name=getArrayName();
+  const panels=currentMode==='rooftop'?(parseInt(document.getElementById('rtPanels').value)||0):parseInt(document.getElementById('gmSize').value)*count;
+  projectCart.push({id:Date.now(),name,kit:kitName,mode:currentMode,multiplier:count,panels,items:bom});
   renderCart();buildMasterBOM();clearPreview();
 }
+
 function renderCart(){
   const list=document.getElementById('cartList');
   document.getElementById('cartCount').textContent=`${projectCart.length} ARRAY${projectCart.length!==1?'S':''}`;
@@ -315,30 +390,33 @@ function renderCart(){
         <span class="cart-item-name">${esc(entry.name)}</span>
         <div class="cart-item-meta">
           <span class="cart-item-badge">${isPurple?'GROUND':'ROOFTOP'}</span>
-          <span class="cart-item-badge">${entry.multiplier} ${isPurple?'TABLES':'STRINGS'}</span>
+          <span class="cart-item-badge">${entry.kit}</span>
+          <span class="cart-item-badge">&times;${entry.multiplier}</span>
           <button class="cart-item-remove" onclick="removeCartItem(event,${entry.id})">×</button>
         </div>
       </div>
       <div class="cart-item-body" id="cartBody${entry.id}">
         <table class="cart-item-table">
           <thead><tr><th>DESCRIPTION</th><th>STOCK CODE</th><th>QTY</th></tr></thead>
-          <tbody>${entry.items.map(i=>`<tr><td>${esc(i.Description||'')}</td><td style="font-family:'DM Mono',monospace;color:var(--muted)">${esc(i.StockCode||'')}</td><td style="text-align:right;font-family:'DM Mono',monospace">${i.CalcQty}</td></tr>`).join('')}</tbody>
+          <tbody>${entry.items.map(i=>`<tr><td>${esc(i.description||i.Description||'')}</td><td style="font-family:'DM Mono',monospace;color:var(--muted)">${esc(i.stockCode||i.StockCode||'')}</td><td style="text-align:right;font-family:'DM Mono',monospace">${i.CalcQty}</td></tr>`).join('')}</tbody>
         </table>
       </div>
     </div>`;
   }).join('');
 }
+
 function toggleCartItem(id){const b=document.getElementById(`cartBody${id}`);if(b)b.classList.toggle('open')}
 function removeCartItem(e,id){e.stopPropagation();projectCart=projectCart.filter(i=>i.id!==id);renderCart();buildMasterBOM()}
 function clearAll(){if(projectCart.length&&!confirm('Clear all arrays?'))return;projectCart=[];renderCart();buildMasterBOM()}
+
 function buildMasterBOM(){
   const agg={};
   projectCart.forEach(entry=>entry.items.forEach(item=>{
-    const code=item.StockCode||item.Description||'';if(!code)return;
-    if(!agg[code])agg[code]={Description:item.Description||code,StockCode:code,TotalQty:0};
+    const code=item.stockCode||item.StockCode||item.description||'';if(!code)return;
+    if(!agg[code])agg[code]={Description:item.description||item.Description||code,StockCode:code,TotalQty:0};
     agg[code].TotalQty+=(item.CalcQty||0);
   }));
-  const lines=Object.values(agg).sort((a,b)=>a.Description.localeCompare(b.Description));
+  const lines=Object.values(agg);
   const empty=document.getElementById('masterEmpty'),table=document.getElementById('masterTable'),body=document.getElementById('masterBody');
   const badge=document.getElementById('masterBadge'),status=document.getElementById('masterStatus');
   badge.textContent=`${lines.length} LINE ITEMS`;
@@ -348,6 +426,7 @@ function buildMasterBOM(){
   empty.style.display='none';table.style.display='table';
   body.innerHTML=lines.map(l=>`<tr><td>${esc(l.Description)}</td><td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${esc(l.StockCode)}</td><td class="qty">${l.TotalQty}</td></tr>`).join('');
 }
+
 async function downloadPDF(){
   if(!projectCart.length){alert('Add at least one array before downloading.');return}
   const {jsPDF}=window.jspdf;
@@ -369,9 +448,9 @@ async function downloadPDF(){
     doc.setTextColor(ar,ag,ab);doc.setFontSize(8);doc.setFont('helvetica','bold');
     doc.text(`${idx+1}. ${entry.name.toUpperCase()}`,16,y+4.5);
     doc.setTextColor(100,100,100);doc.setFont('helvetica','normal');
-    doc.text(`${entry.mode.toUpperCase()} | ${entry.kit} | ${entry.multiplier} ${isPurple?'TABLES':'STRINGS'}`,196,y+4.5,{align:'right'});
+    doc.text(`${entry.mode.toUpperCase()} | ${entry.kit} | ×${entry.multiplier}`,196,y+4.5,{align:'right'});
     y+=9;
-    doc.autoTable({startY:y,head:[['DESCRIPTION','STOCK CODE','QTY']],body:entry.items.map(i=>[i.Description||'',i.StockCode||'',i.CalcQty]),
+    doc.autoTable({startY:y,head:[['DESCRIPTION','STOCK CODE','QTY']],body:entry.items.map(i=>[i.description||i.Description||'',i.stockCode||i.StockCode||'',i.CalcQty]),
       styles:{font:'helvetica',fontSize:8,textColor:[200,200,200],fillColor:[18,18,18],lineColor:[40,40,40],lineWidth:0.2},
       headStyles:{fillColor:[30,30,30],textColor:[ar,ag,ab],fontStyle:'bold',fontSize:7},
       columnStyles:{2:{halign:'right',textColor:[ar,ag,ab]}},margin:{left:14,right:14},theme:'grid'});
@@ -382,11 +461,11 @@ async function downloadPDF(){
   doc.setTextColor(207,174,54);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('CONSOLIDATED MASTER BOM',14,y);y+=6;
   const agg={};
   projectCart.forEach(entry=>entry.items.forEach(item=>{
-    const code=item.StockCode||item.Description||'';if(!code)return;
-    if(!agg[code])agg[code]={Description:item.Description||code,StockCode:code,TotalQty:0};
+    const code=item.stockCode||item.StockCode||'';if(!code)return;
+    if(!agg[code])agg[code]={Description:item.description||item.Description||code,StockCode:code,TotalQty:0};
     agg[code].TotalQty+=item.CalcQty||0;
   }));
-  const lines=Object.values(agg).sort((a,b)=>a.Description.localeCompare(b.Description));
+  const lines=Object.values(agg);
   doc.autoTable({startY:y,head:[['DESCRIPTION','STOCK CODE','TOTAL QTY']],body:lines.map(l=>[l.Description,l.StockCode,l.TotalQty]),
     styles:{font:'helvetica',fontSize:8,textColor:[220,220,220],fillColor:[18,18,18],lineColor:[40,40,40],lineWidth:0.2},
     headStyles:{fillColor:[30,26,10],textColor:[207,174,54],fontStyle:'bold',fontSize:7},
@@ -395,6 +474,7 @@ async function downloadPDF(){
   for(let i=1;i<=pageCount;i++){doc.setPage(i);doc.setFontSize(7);doc.setTextColor(60,60,60);doc.setFont('helvetica','normal');doc.text('AXON EZ-BOM — CONFIDENTIAL',14,290);doc.text(`PAGE ${i} OF ${pageCount}`,196,290,{align:'right'})}
   doc.save(`AXON_BOM_${now.toISOString().slice(0,10)}.pdf`);
 }
+
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 fetchData();
 </script>
