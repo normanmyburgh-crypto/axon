@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AXON Proposer v3.1 — Precision Solar</title>
+    <title>AXON Proposer v3.2</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -16,120 +16,118 @@
             --text-dim: #888; --font: 'Space Grotesk', sans-serif;
             --mono: 'JetBrains Mono', monospace;
         }
-        body { background: var(--bg); color: var(--text); font-family: var(--font); margin: 0; padding: 20px; }
+        body { background: var(--bg); color: var(--text); font-family: var(--font); margin: 0; padding: 20px; line-height: 1.4; }
         
-        /* Step-by-Step UI */
+        /* UI Steps */
         .setup-container { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 40px; }
         .setup-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 12px; }
-        .step-num { color: var(--teal); font-family: var(--mono); font-weight: bold; margin-bottom: 10px; display: block; font-size: 10px; letter-spacing: 2px;}
+        .step-num { color: var(--teal); font-family: var(--mono); font-weight: bold; margin-bottom: 12px; display: block; font-size: 10px; letter-spacing: 2px;}
         
-        .field { margin-bottom: 10px; }
+        .field { margin-bottom: 12px; }
         .field label { display: block; font-size: 10px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; }
-        .field input { width: 100%; background: #000; border: 1px solid var(--border); padding: 8px; color: #fff; font-family: var(--mono); border-radius: 4px; }
+        .field input { width: 100%; background: #000; border: 1px solid var(--border); padding: 10px; color: #fff; font-family: var(--mono); border-radius: 6px; box-sizing: border-box; }
 
-        /* Dashboard Visibility */
-        #dashboard { opacity: 0.2; pointer-events: none; transition: opacity 0.5s; padding-bottom: 100px; }
-        #dashboard.ready { opacity: 1; pointer-events: auto; }
+        #dashboard { opacity: 0.15; transition: opacity 0.5s; }
+        #dashboard.ready { opacity: 1; }
 
-        /* KPI & Charts */
+        /* PDF & Layout */
         .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
         .kpi-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 12px; border-top: 2px solid var(--teal); }
-        .chart-box { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .chart-box { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 12px; margin-bottom: 25px; page-break-inside: avoid; }
         
-        /* Upload Styles */
-        .upload-area { border: 2px dashed var(--border); padding: 20px; text-align: center; cursor: pointer; border-radius: 8px; transition: 0.2s; }
-        .upload-area:hover { border-color: var(--teal); background: rgba(0,255,217,0.05); }
+        .upload-area { border: 2px dashed var(--border); padding: 25px; text-align: center; cursor: pointer; border-radius: 8px; transition: 0.2s; }
+        .upload-area.active { border-color: var(--teal); background: rgba(0,255,217,0.05); }
         
-        .btn { background: var(--teal); color: #000; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; width: 100%; font-family: var(--font); }
-        .btn-gold { background: var(--gold); }
+        .btn { background: var(--teal); color: #000; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; width: 100%; font-family: var(--font); transition: 0.2s; }
+        .btn-gold { background: var(--gold); margin-top: 8px; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
         .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
         
-        table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
-        th { text-align: left; color: var(--teal); border-bottom: 1px solid var(--border); padding: 10px; }
-        td { padding: 10px; border-bottom: 1px solid #1a1a1a; }
+        table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; margin-top: 10px; }
+        th { text-align: left; color: var(--teal); border-bottom: 1px solid var(--border); padding: 12px; }
+        td { padding: 12px; border-bottom: 1px solid #1a1a1a; }
         
-        #capture-area { padding: 20px; background: #080808; }
-
-        @media print { .no-print { display: none; } }
+        #dataPreview { font-size: 10px; color: var(--gold); margin-top: 10px; font-family: var(--mono); height: 1.2em; overflow: hidden; }
     </style>
 </head>
 <body>
 
-    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+    <header style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
         <div>
-            <h1 style="color: var(--teal); margin:0;">AXON <span style="color: white;">Proposer</span></h1>
-            <p style="color: var(--text-dim); font-size: 10px; font-family: var(--mono); margin:0; letter-spacing: 2px;">V3.1 — PRECISION FINANCIALS</p>
+            <h1 style="color: var(--teal); margin:0; font-size: 28px;">AXON <span style="color: white;">Proposer</span></h1>
+            <p style="color: var(--text-dim); font-size: 10px; font-family: var(--mono); margin:0; letter-spacing: 2px;">V3.2 — AUTOMATED SOURCE-OF-TRUTH ENGINE</p>
         </div>
-        <div id="clientLogoDisplay" style="width: 180px; height: 60px; border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; border-radius: 8px; overflow: hidden;">
-            <span style="font-size: 10px; color: var(--text-dim);">NO LOGO UPLOADED</span>
+        <div id="clientLogoDisplay" style="width: 180px; height: 65px; border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; border-radius: 8px; overflow: hidden; background: #000;">
+            <span style="font-size: 10px; color: var(--text-dim);">DRAG LOGO HERE</span>
         </div>
     </header>
 
-    <div class="setup-container no-print">
+    <div class="setup-container">
         <div class="setup-card">
-            <span class="step-num">STEP 01: BRANDING</span>
+            <span class="step-num">01. IDENTITY</span>
             <div class="field">
-                <label>Company / Project Logo</label>
+                <label>Client Name / Reference</label>
+                <input type="text" id="projName" placeholder="e.g. Acme Industrial">
+            </div>
+            <div class="field">
+                <label>Logo Upload</label>
                 <input type="file" id="logoInput" accept="image/*">
             </div>
-            <div class="field">
-                <label>Project Name</label>
-                <input type="text" id="projName" placeholder="Client Name">
+        </div>
+
+        <div class="setup-card">
+            <span class="step-num">02. SYSTEM METRICS</span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="field"><label>Investment (R)</label><input type="number" id="costInp" value="2500000"></div>
+                <div class="field"><label>Size (kWp)</label><input type="number" id="sizeInp" value="250"></div>
+                <div class="field"><label>Grid Rate (R)</label><input type="number" id="rateInp" step="0.01" value="2.95"></div>
+                <div class="field"><label>Annual Esc %</label><input type="number" id="escInp" value="11"></div>
             </div>
         </div>
 
         <div class="setup-card">
-            <span class="step-num">STEP 02: CONFIGURATION</span>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div class="field"><label>Total Cost (R)</label><input type="number" id="costInp" value="5000000"></div>
-                <div class="field"><label>Size (kWp)</label><input type="number" id="sizeInp" value="500"></div>
-                <div class="field"><label>Tariff (R/kWh)</label><input type="number" id="rateInp" step="0.01" value="2.85"></div>
-                <div class="field"><label>Escalation %</label><input type="number" id="escInp" value="12"></div>
-            </div>
-        </div>
-
-        <div class="setup-card">
-            <span class="step-num">STEP 03: DATA & PDF</span>
+            <span class="step-num">03. DATA SYNC</span>
             <div class="upload-area" id="dropZone">
-                <p id="fileStatus" style="font-size: 11px; margin:0;">Click to upload CSV Template</p>
+                <p id="fileStatus" style="font-size: 11px; margin:0; color: var(--teal);">Drop CSV Sheet Here</p>
                 <input type="file" id="csvInput" accept=".csv" hidden>
             </div>
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button class="btn" id="calcBtn" onclick="processData()" disabled>CALCULATE</button>
-                <button class="btn btn-gold" onclick="generatePDF()">PDF</button>
+            <div id="dataPreview">No sheet detected</div>
+            <div style="margin-top: 15px;">
+                <button class="btn" id="calcBtn" onclick="processData()" disabled>RUN ANALYSIS</button>
+                <button class="btn btn-gold" onclick="generatePDF()">EXPORT PDF</button>
             </div>
         </div>
     </div>
 
     <div id="dashboard">
-        <div id="capture-area">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
-                <h2 id="pdfProjName" style="margin:0;">Solar Financial Proposal</h2>
-                <div id="pdfLogoZone"></div>
+        <div id="capture-area" style="padding: 20px; background: #080808;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 30px;">
+                <h2 id="pdfProjName" style="margin:0; font-weight: 300; letter-spacing: 1px;">Project Financial Assessment</h2>
+                <div id="pdfLogoZone" style="max-height: 50px;"></div>
             </div>
 
             <div class="kpi-row">
-                <div class="kpi-card"><small>SYSTEM SIZE</small><h2 id="kpiSize">--</h2></div>
-                <div class="kpi-card"><small>ANNUAL SAVINGS</small><h2 id="kpiSavings" style="color: var(--teal);">--</h2></div>
-                <div class="kpi-card"><small>PAYBACK PERIOD</small><h2 id="kpiPayback" style="color: var(--gold);">--</h2></div>
-                <div class="kpi-card"><small>LIFETIME VALUE (20YR)</small><h2 id="kpiNPV">--</h2></div>
+                <div class="kpi-card"><small style="color: var(--text-dim);">SYSTEM CAPACITY</small><h2 id="kpiSize" style="margin:5px 0 0 0;">--</h2></div>
+                <div class="kpi-card"><small style="color: var(--text-dim);">YEAR 1 SAVINGS</small><h2 id="kpiSavings" style="margin:5px 0 0 0; color: var(--teal);">--</h2></div>
+                <div class="kpi-card"><small style="color: var(--text-dim);">ROI PAYBACK</small><h2 id="kpiPayback" style="margin:5px 0 0 0; color: var(--gold);">--</h2></div>
+                <div class="kpi-card"><small style="color: var(--text-dim);">NPV (20 YEARS)</small><h2 id="kpiNPV" style="margin:5px 0 0 0;">--</h2></div>
             </div>
 
             <div class="chart-box">
-                <h4 style="margin: 0 0 15px 0; color: var(--teal); font-size: 12px; letter-spacing: 1px;">MONTHLY PRODUCTION VS CONSUMPTION</h4>
-                <div style="height: 300px;"><canvas id="mainChart"></canvas></div>
+                <h4 style="margin: 0 0 20px 0; font-size: 12px; letter-spacing: 1px; color: var(--teal);">MONTHLY PERFORMANCE MAP</h4>
+                <div style="height: 320px;"><canvas id="mainChart"></canvas></div>
             </div>
 
             <div class="chart-box">
-                <h4 style="margin: 0 0 15px 0; color: var(--teal); font-size: 12px; letter-spacing: 1px;">20-YEAR CASH FLOW FORECAST</h4>
+                <h4 style="margin: 0 0 10px 0; font-size: 12px; letter-spacing: 1px; color: var(--teal);">CASH FLOW & YIELD FORECAST</h4>
                 <table id="cashFlowTable">
                     <thead>
                         <tr>
                             <th>YEAR</th>
-                            <th>GENERATION (kWh)</th>
-                            <th>ANNUAL SAVINGS</th>
-                            <th>TAX SHIELD (12B)</th>
-                            <th>NET CASHFLOW</th>
+                            <th>YIELD (kWh)</th>
+                            <th>SAVINGS (R)</th>
+                            <th>TAX CREDIT</th>
+                            <th>NET POSITION</th>
                             <th>CUMULATIVE</th>
                         </tr>
                     </thead>
@@ -143,45 +141,61 @@
     let rawData = [];
     let chartInstance = null;
 
-    // Logo persistence
+    // --- LOGO ENGINE ---
     document.getElementById('logoInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if(!file) return;
         const reader = new FileReader();
         reader.onload = function(event) {
-            const img = `<img src="${event.target.result}" style="max-width:100%; max-height:100%;">`;
-            document.getElementById('clientLogoDisplay').innerHTML = img;
-            document.getElementById('pdfLogoZone').innerHTML = img;
-            localStorage.setItem('axon_logo', event.target.result);
+            const imgHtml = `<img src="${event.target.result}" style="max-width:100%; max-height:100%; object-fit: contain;">`;
+            document.getElementById('clientLogoDisplay').innerHTML = imgHtml;
+            document.getElementById('pdfLogoZone').innerHTML = imgHtml;
+            localStorage.setItem('axon_logo_v3', event.target.result);
         };
-        reader.readAsDataURL(e.target.files[0]);
+        reader.readAsDataURL(file);
     });
 
-    // CSV Mapping
+    // --- CSV ENGINE (FUZZY) ---
     const dropZone = document.getElementById('dropZone');
     dropZone.onclick = () => document.getElementById('csvInput').click();
+
     document.getElementById('csvInput').addEventListener('change', (e) => {
-        Papa.parse(e.target.files[0], {
+        const file = e.target.files[0];
+        if(!file) return;
+
+        Papa.parse(file, {
             header: true,
             dynamicTyping: true,
             skipEmptyLines: true,
             complete: function(res) {
-                // FLEXIBLE MAPPING: Handles 'Month' or 'month', 'PV_Yield_kWh' or 'yield_kwh'
-                rawData = res.data.map(row => {
-                    const keys = Object.keys(row);
-                    const find = (names) => {
-                        const k = keys.find(k => names.includes(k.toLowerCase()));
-                        return k ? row[k] : 0;
-                    };
+                const cols = res.meta.fields;
+                
+                // Helper to find column regardless of spaces/case
+                const findCol = (targets) => {
+                    return cols.find(c => targets.includes(c.trim().toLowerCase()));
+                };
 
-                    return {
-                        month: find(['month']),
-                        yield: find(['pv_yield_kwh', 'yield_kwh', 'generation']),
-                        usage: find(['grid_usage_peak', 'peak']) + find(['grid_usage_std', 'std']) + find(['grid_usage_offpeak', 'offpeak']) || find(['usage_kwh', 'consumption'])
-                    };
-                }).filter(r => r.month);
+                const monthKey = findCol(['month']);
+                const yieldKey = findCol(['pv_yield_kwh', 'yield_kwh', 'pv_yield']);
+                const peakKey = findCol(['grid_usage_peak', 'peak_usage']);
+                const stdKey = findCol(['grid_usage_std', 'std_usage']);
+                const offKey = findCol(['grid_usage_offpeak', 'off_peak_usage']);
 
-                document.getElementById('fileStatus').innerText = "✓ Template Ready";
+                if(!monthKey || !yieldKey) {
+                    document.getElementById('dataPreview').innerText = "ERROR: Missing 'Month' or 'PV_Yield_kWh' column.";
+                    return;
+                }
+
+                rawData = res.data.map(row => ({
+                    month: row[monthKey],
+                    yield: row[yieldKey] || 0,
+                    usage: (row[peakKey] || 0) + (row[stdKey] || 0) + (row[offKey] || 0)
+                })).filter(r => r.month);
+
+                document.getElementById('dataPreview').innerText = `✓ FOUND: ${rawData.length} months of data`;
                 document.getElementById('calcBtn').disabled = false;
                 document.getElementById('dashboard').classList.add('ready');
+                document.getElementById('fileStatus').innerText = "REPLACE SHEET";
             }
         });
     });
@@ -191,27 +205,24 @@
         const size = parseFloat(document.getElementById('sizeInp').value);
         const rate = parseFloat(document.getElementById('rateInp').value);
         const esc = parseFloat(document.getElementById('escInp').value) / 100;
-        const name = document.getElementById('projName').value || "Solar Project";
+        const name = document.getElementById('projName').value || "Client Assessment";
 
         document.getElementById('pdfProjName').innerText = name;
         document.getElementById('kpiSize').innerText = size + " kWp";
 
-        // Calculate Y1 Savings
         const y1Gen = rawData.reduce((s, r) => s + r.yield, 0);
         const y1Savings = y1Gen * rate;
         document.getElementById('kpiSavings').innerText = "R " + Math.round(y1Savings).toLocaleString();
 
-        // 20 Year Table
         const tbody = document.querySelector('#cashFlowTable tbody');
         tbody.innerHTML = '';
         let cumulative = -cost;
         let payback = null;
-        const taxShield = cost * 0.27; // Section 12B estimation
 
         for (let y = 1; y <= 20; y++) {
-            const yrGen = y1Gen * Math.pow(0.995, y-1);
+            const yrGen = y1Gen * Math.pow(0.995, y-1); // 0.5% degradation
             const yrSav = y1Savings * Math.pow(1 + esc, y-1);
-            const shield = (y === 1) ? taxShield : 0;
+            const shield = (y === 1) ? (cost * 0.27) : 0; // Section 12B
             const net = yrSav + shield;
             cumulative += net;
 
@@ -221,7 +232,7 @@
                 <td>${y}</td>
                 <td>${Math.round(yrGen).toLocaleString()}</td>
                 <td>R ${Math.round(yrSav).toLocaleString()}</td>
-                <td>${shield > 0 ? 'R ' + shield.toLocaleString() : '--'}</td>
+                <td>${shield > 0 ? 'R ' + Math.round(shield).toLocaleString() : '--'}</td>
                 <td>R ${Math.round(net).toLocaleString()}</td>
                 <td style="color:${cumulative >= 0 ? 'var(--teal)' : 'var(--gold)'}">R ${Math.round(cumulative).toLocaleString()}</td>
             </tr>`;
@@ -241,11 +252,19 @@
             data: {
                 labels: rawData.map(r => r.month),
                 datasets: [
-                    { label: 'Solar Generation (kWh)', data: rawData.map(r => r.yield), backgroundColor: '#00FFD9', borderRadius: 4 },
-                    { label: 'Total Consumption (kWh)', data: rawData.map(r => r.usage), type: 'line', borderColor: '#888', borderDash: [5,5], pointRadius: 0 }
+                    { label: 'Solar Generation (kWh)', data: rawData.map(r => r.yield), backgroundColor: '#00FFD9', borderRadius: 4, barPercentage: 0.6 },
+                    { label: 'Energy Consumption (kWh)', data: rawData.map(r => r.usage), type: 'line', borderColor: '#CFAE36', borderWidth: 2, pointRadius: 0, tension: 0.3 }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#222' } } } }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#888', font: { family: 'Space Grotesk' } } } },
+                scales: { 
+                    y: { grid: { color: '#1a1a1a' }, ticks: { color: '#666' } },
+                    x: { grid: { display: false }, ticks: { color: '#666' } }
+                }
+            }
         });
     }
 
@@ -254,13 +273,20 @@
         const doc = new jsPDF('p', 'mm', 'a4');
         const element = document.getElementById('capture-area');
 
-        const canvas = await html2canvas(element, { backgroundColor: '#080808', scale: 2 });
-        const imgData = canvas.toDataURL('image/png');
+        // Render at 2x scale for high resolution
+        const canvas = await html2canvas(element, { 
+            backgroundColor: '#080808', 
+            scale: 2,
+            useCORS: true,
+            logging: false
+        });
+
+        const imgData = canvas.toDataURL('image/png', 1.0);
         const pdfWidth = doc.internal.pageSize.getWidth();
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-        doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        doc.save(`${document.getElementById('pdfProjName').innerText}-AXON.pdf`);
+        doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+        doc.save(`${document.getElementById('projName').value || 'AXON'}-Proposal.pdf`);
     }
 </script>
 </body>
