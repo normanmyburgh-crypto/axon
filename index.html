@@ -1,284 +1,2871 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AXON Proposer | Premium EPC Visualiser</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <style>
-        :root {
-            --bg: #050505; --card: #0F0F0F; --border: #1A1A1A;
-            --teal: #00FFD9; --gold: #CFAE36; --text: #FFFFFF;
-            --dim: #777777; --font: 'Space Grotesk', sans-serif;
-        }
-        body { background: var(--bg); color: var(--text); font-family: var(--font); margin: 0; padding: 0; }
-        
-        /* Control Panel (Hidden on Print) */
-        .admin-bar { background: #111; border-bottom: 1px solid var(--border); padding: 20px; display: flex; gap: 20px; align-items: flex-end; position: sticky; top: 0; z-index: 100; }
-        .input-group { display: flex; flex-direction: column; gap: 5px; }
-        .input-group label { font-size: 10px; color: var(--teal); letter-spacing: 1px; font-weight: 700; }
-        .admin-bar input { background: #000; border: 1px solid #333; color: white; padding: 8px; border-radius: 4px; font-family: 'JetBrains Mono'; width: 140px; }
-        
-        /* Proposal Canvas */
-        .proposal-container { width: 210mm; margin: 40px auto; background: var(--bg); position: relative; }
-        .page { padding: 60px; min-height: 297mm; border-bottom: 1px solid #222; position: relative; box-sizing: border-box; }
-        
-        .header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 80px; }
-        .client-info h1 { font-size: 42px; font-weight: 300; margin: 0; letter-spacing: -1px; }
-        .client-info p { color: var(--teal); margin: 5px 0 0 0; letter-spacing: 2px; font-size: 12px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AXON Proposer — Solar Financial Intelligence</title>
 
-        .logo-box { width: 180px; height: 70px; display: flex; align-items: center; justify-content: flex-end; }
-        .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-        /* Grid Layouts for Specs */
-        .spec-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 40px; }
-        .spec-card { background: var(--card); border: 1px solid var(--border); padding: 25px; border-radius: 2px; }
-        .spec-card h3 { margin: 0; font-size: 24px; font-weight: 500; }
-        .spec-card p { margin: 8px 0 0 0; font-size: 12px; color: var(--dim); line-height: 1.6; }
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-        .metric-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--border); margin: 60px 0; border: 1px solid var(--border); }
-        .metric-item { background: var(--bg); padding: 30px; text-align: center; }
-        .metric-item span { display: block; font-size: 10px; color: var(--teal); margin-bottom: 10px; letter-spacing: 1px; }
-        .metric-item h2 { margin: 0; font-size: 32px; font-weight: 600; }
+<style>
+/* ═══════════════════════════════════════════════════════════
+   AXON DESIGN SYSTEM — OBSIDIAN THEME
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  /* Core Palette */
+  --obsidian:     #080808;
+  --obsidian-900: #0d0d0d;
+  --obsidian-800: #111111;
+  --obsidian-700: #161616;
+  --obsidian-600: #1c1c1c;
+  --obsidian-500: #242424;
+  --obsidian-400: #2e2e2e;
+  --obsidian-300: #3a3a3a;
 
-        /* Tables & Charts */
-        .chart-container { margin-top: 40px; height: 350px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 30px; font-family: 'JetBrains Mono'; font-size: 11px; }
-        th { text-align: left; padding: 15px; color: var(--teal); border-bottom: 1px solid var(--border); font-weight: 400; }
-        td { padding: 15px; border-bottom: 1px solid #111; }
-        .highlight-text { color: var(--teal); font-weight: bold; }
+  /* Accents */
+  --teal:         #00FFD9;
+  --teal-80:      rgba(0, 255, 217, 0.8);
+  --teal-40:      rgba(0, 255, 217, 0.4);
+  --teal-20:      rgba(0, 255, 217, 0.2);
+  --teal-10:      rgba(0, 255, 217, 0.1);
+  --teal-05:      rgba(0, 255, 217, 0.05);
+  --teal-glow:    0 0 20px rgba(0, 255, 217, 0.25), 0 0 60px rgba(0, 255, 217, 0.08);
 
-        /* Buttons */
-        .btn-main { background: var(--teal); color: black; border: none; padding: 12px 25px; font-weight: 700; cursor: pointer; border-radius: 4px; }
-        .btn-sec { background: transparent; border: 1px solid #444; color: white; padding: 12px 25px; cursor: pointer; border-radius: 4px; }
+  --gold:         #CFAE36;
+  --gold-80:      rgba(207, 174, 54, 0.8);
+  --gold-20:      rgba(207, 174, 54, 0.2);
+  --gold-10:      rgba(207, 174, 54, 0.1);
+  --gold-glow:    0 0 20px rgba(207, 174, 54, 0.2);
 
-        @media print { .no-print { display: none !important; } .page { border: none; } }
-    </style>
+  --red-accent:   #FF4757;
+  --red-10:       rgba(255, 71, 87, 0.1);
+
+  /* Text */
+  --text-primary:   #F5F5F5;
+  --text-secondary: #8A8A8A;
+  --text-muted:     #4A4A4A;
+  --text-teal:      var(--teal);
+  --text-gold:      var(--gold);
+
+  /* Typography */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-data:    'JetBrains Mono', monospace;
+
+  /* Layout */
+  --sidebar-width: 320px;
+  --header-h:      64px;
+  --radius-sm:     6px;
+  --radius-md:     10px;
+  --radius-lg:     16px;
+  --radius-xl:     22px;
+
+  /* Transitions */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; scroll-behavior: smooth; }
+body {
+  background: var(--obsidian);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--obsidian-400); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--obsidian-300); }
+
+/* ══════════════════════════════════════════
+   LAYOUT SHELL
+══════════════════════════════════════════ */
+
+/* Top Header Bar */
+#header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--header-h);
+  background: rgba(8,8,8,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--obsidian-400);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 200;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.axon-logomark {
+  width: 40px; height: 40px;
+  background: var(--teal);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-data);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--obsidian);
+  letter-spacing: -0.5px;
+  flex-shrink: 0;
+  box-shadow: var(--teal-glow);
+}
+
+.brand-text-block { line-height: 1; }
+.brand-name {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--text-primary);
+}
+.brand-name span { color: var(--teal); }
+.brand-tagline {
+  font-family: var(--font-data);
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 3px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── App Layout ── */
+#app-layout {
+  display: flex;
+  padding-top: var(--header-h);
+  min-height: 100vh;
+}
+
+/* ── Sidebar ── */
+#sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--obsidian-800);
+  border-right: 1px solid var(--obsidian-400);
+  height: calc(100vh - var(--header-h));
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  overflow-y: auto;
+  padding: 20px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform 0.4s var(--ease);
+  z-index: 100;
+}
+
+/* ── Main Content ── */
+#main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  padding: 24px 24px 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* ══════════════════════════════════════════
+   COMPONENT LIBRARY
+══════════════════════════════════════════ */
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--obsidian-400);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn:hover {
+  border-color: var(--obsidian-300);
+  color: var(--text-primary);
+  background: var(--obsidian-600);
+}
+.btn:active { transform: scale(0.98); }
+
+.btn-primary {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: var(--obsidian);
+  font-weight: 600;
+  box-shadow: var(--teal-glow);
+}
+.btn-primary:hover {
+  background: #00e8c4;
+  border-color: #00e8c4;
+  color: var(--obsidian);
+  box-shadow: 0 0 30px rgba(0,255,217,0.4);
+}
+
+.btn-gold {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #000;
+  font-weight: 600;
+  box-shadow: var(--gold-glow);
+}
+.btn-gold:hover {
+  background: #dbbe3d;
+  border-color: #dbbe3d;
+  color: #000;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.btn-ghost:hover {
+  background: var(--obsidian-600);
+  border-color: var(--obsidian-400);
+}
+
+.btn-sm { padding: 6px 13px; font-size: 11px; }
+.btn-icon { padding: 8px; border-radius: var(--radius-sm); }
+
+/* ── Panels / Cards ── */
+.panel {
+  background: var(--obsidian-800);
+  border: 1px solid var(--obsidian-400);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--obsidian-500);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-label {
+  font-family: var(--font-data);
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: var(--teal);
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+.panel-body { padding: 16px 18px; }
+
+/* ── Form Fields ── */
+.field-group { display: flex; flex-direction: column; gap: 10px; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field label {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  font-family: var(--font-data);
+}
+
+.field input,
+.field select,
+.field textarea {
+  background: var(--obsidian-700);
+  border: 1px solid var(--obsidian-400);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  color: var(--text-primary);
+  font-family: var(--font-data);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+.field input:focus,
+.field select:focus {
+  border-color: var(--teal-40);
+  box-shadow: 0 0 0 3px var(--teal-05);
+}
+.field input::placeholder { color: var(--text-muted); }
+.field select option { background: var(--obsidian-700); color: var(--text-primary); }
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* ── Dividers ── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0;
+}
+.divider-line { flex: 1; height: 1px; background: var(--obsidian-500); }
+.divider-text {
+  font-family: var(--font-data);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-family: var(--font-data);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.badge-teal {
+  background: var(--teal-10);
+  color: var(--teal);
+  border: 1px solid var(--teal-20);
+}
+.badge-gold {
+  background: var(--gold-10);
+  color: var(--gold);
+  border: 1px solid var(--gold-20);
+}
+.badge-red {
+  background: var(--red-10);
+  color: var(--red-accent);
+  border: 1px solid rgba(255,71,87,0.2);
+}
+.badge-muted {
+  background: var(--obsidian-600);
+  color: var(--text-muted);
+  border: 1px solid var(--obsidian-400);
+}
+
+/* ── Status Dot ── */
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot.ok    { background: var(--teal); box-shadow: 0 0 8px var(--teal-40); }
+.status-dot.warn  { background: var(--gold); box-shadow: 0 0 8px var(--gold-20); }
+.status-dot.idle  { background: var(--obsidian-300); }
+.status-dot.err   { background: var(--red-accent); }
+
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.fade-up { animation: fadeUp 0.5s var(--ease) both; }
+.fade-up-1 { animation-delay: 0.05s; }
+.fade-up-2 { animation-delay: 0.10s; }
+.fade-up-3 { animation-delay: 0.15s; }
+.fade-up-4 { animation-delay: 0.20s; }
+.fade-up-5 { animation-delay: 0.25s; }
+
+.pulse-dot { animation: pulse 2s ease-in-out infinite; }
+
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--obsidian-400);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════
+   SIDEBAR SPECIFIC COMPONENTS
+═══════════════════════════════════ */
+
+.sidebar-section-title {
+  font-family: var(--font-data);
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: var(--teal);
+  padding: 0 2px;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--teal-20), transparent);
+}
+
+/* ── Logo Drop Zone ── */
+#logo-drop-zone {
+  border: 1px dashed var(--obsidian-400);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: var(--obsidian-700);
+  position: relative;
+  overflow: hidden;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+#logo-drop-zone:hover {
+  border-color: var(--teal-40);
+  background: var(--teal-05);
+}
+#logo-drop-zone.drag-over {
+  border-color: var(--teal);
+  background: var(--teal-10);
+  box-shadow: var(--teal-glow);
+}
+#logo-drop-zone .dz-icon {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-muted);
+}
+#logo-drop-zone .dz-text {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+#logo-drop-zone .dz-text strong { color: var(--teal); font-weight: 500; }
+#logo-preview {
+  max-width: 100%;
+  max-height: 60px;
+  object-fit: contain;
+  display: none;
+}
+#logo-drop-zone input[type=file] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+  width: 100%; height: 100%;
+}
+
+/* ── CSV Upload Zone ── */
+#csv-drop-zone {
+  border: 1px dashed var(--obsidian-400);
+  border-radius: var(--radius-md);
+  padding: 18px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: var(--obsidian-700);
+  position: relative;
+  overflow: hidden;
+}
+#csv-drop-zone:hover {
+  border-color: var(--teal-40);
+  background: var(--teal-05);
+}
+#csv-drop-zone.drag-over {
+  border-color: var(--teal);
+  background: var(--teal-10);
+}
+#csv-drop-zone input[type=file] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+}
+.csv-icon-wrap {
+  width: 36px; height: 36px;
+  margin: 0 auto 8px;
+  background: var(--obsidian-500);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.csv-upload-text { font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
+.csv-upload-text strong { color: var(--teal); }
+.csv-upload-hint {
+  font-family: var(--font-data);
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* ── Data Status ── */
+.data-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--obsidian-700);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--obsidian-500);
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* ── Tariff Grid ── */
+.tariff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.tariff-cell {
+  background: var(--obsidian-700);
+  border: 1px solid var(--obsidian-500);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+.tariff-cell:hover { border-color: var(--obsidian-400); }
+.tariff-cell-label {
+  font-family: var(--font-data);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 5px;
+}
+.tariff-cell-label.peak  { color: var(--red-accent); }
+.tariff-cell-label.std   { color: var(--gold); }
+.tariff-cell-label.offpk { color: var(--teal); }
+.tariff-cell input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--obsidian-400);
+  border-radius: 0;
+  text-align: center;
+  width: 100%;
+  padding: 3px 0;
+  font-size: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-data);
+  outline: none;
+}
+.tariff-cell input:focus { border-bottom-color: var(--teal); }
+
+/* ═══════════════════════════════════
+   KPI CARDS
+═══════════════════════════════════ */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.kpi-card {
+  background: var(--obsidian-800);
+  border: 1px solid var(--obsidian-400);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.2s;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.kpi-card.card-teal::before    { background: var(--teal); }
+.kpi-card.card-gold::before    { background: var(--gold); }
+.kpi-card.card-red::before     { background: var(--red-accent); }
+.kpi-card.card-purple::before  { background: #a855f7; }
+
+.kpi-card:hover {
+  border-color: var(--obsidian-300);
+  transform: translateY(-1px);
+}
+
+.kpi-card-label {
+  font-family: var(--font-data);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  line-height: 1;
+  font-family: var(--font-data);
+}
+.kpi-card-value.teal   { color: var(--teal); }
+.kpi-card-value.gold   { color: var(--gold); }
+.kpi-card-value.white  { color: var(--text-primary); }
+.kpi-card-value.purple { color: #c084fc; }
+
+.kpi-card-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.kpi-card-icon {
+  position: absolute;
+  bottom: 14px;
+  right: 16px;
+  font-size: 28px;
+  opacity: 0.06;
+  font-family: var(--font-data);
+  font-weight: 700;
+  letter-spacing: -2px;
+  user-select: none;
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════
+   CHART PANELS
+═══════════════════════════════════ */
+
+.chart-card {
+  background: var(--obsidian-800);
+  border: 1px solid var(--obsidian-400);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.chart-header {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--obsidian-500);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chart-subtitle {
+  font-family: var(--font-data);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-data);
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.legend-swatch {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.legend-line {
+  width: 16px; height: 2px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.chart-body {
+  padding: 20px;
+  position: relative;
+}
+
+.chart-canvas-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* Two-column chart grid */
+.chart-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* ═══════════════════════════════════
+   CASHFLOW TABLE
+═══════════════════════════════════ */
+
+.cf-table-wrap {
+  overflow-x: auto;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.cf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-data);
+  font-size: 11px;
+  min-width: 700px;
+}
+
+.cf-table thead th {
+  padding: 10px 14px;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  border-bottom: 1px solid var(--obsidian-500);
+  white-space: nowrap;
+}
+.cf-table thead th:first-child { text-align: left; }
+
+.cf-table tbody td {
+  padding: 9px 14px;
+  text-align: right;
+  border-bottom: 1px solid var(--obsidian-600);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.cf-table tbody td:first-child { text-align: left; color: var(--text-muted); }
+
+.cf-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+.cf-table .val-pos   { color: var(--teal); }
+.cf-table .val-neg   { color: var(--red-accent); }
+.cf-table .val-gold  { color: var(--gold); }
+.cf-table .val-white { color: var(--text-primary); font-weight: 500; }
+.cf-table .payback-row td { background: var(--teal-05); }
+.cf-table .payback-row td:first-child { color: var(--teal); font-weight: 500; }
+
+/* ═══════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════ */
+
+.empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty-state-icon {
+  width: 56px; height: 56px;
+  border-radius: var(--radius-xl);
+  background: var(--obsidian-600);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.empty-state-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.empty-state-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 280px;
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════
+   TOAST NOTIFICATION
+═══════════════════════════════════ */
+
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--obsidian-600);
+  border: 1px solid var(--obsidian-300);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 320px;
+  animation: fadeUp 0.3s var(--ease) both;
+  pointer-events: all;
+}
+.toast.toast-ok    { border-color: var(--teal-20); }
+.toast.toast-ok .toast-icon { color: var(--teal); }
+.toast.toast-warn  { border-color: var(--gold-20); }
+.toast.toast-warn .toast-icon { color: var(--gold); }
+.toast.toast-err   { border-color: rgba(255,71,87,0.3); }
+.toast.toast-err .toast-icon { color: var(--red-accent); }
+.toast-icon { font-size: 14px; flex-shrink: 0; }
+.toast-text { line-height: 1.4; }
+
+/* ═══════════════════════════════════
+   PROGRESS BAR
+═══════════════════════════════════ */
+
+.progress-bar-wrap {
+  height: 4px;
+  background: var(--obsidian-500);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s var(--ease);
+}
+.progress-bar-fill.teal   { background: var(--teal); }
+.progress-bar-fill.gold   { background: var(--gold); }
+.progress-bar-fill.red    { background: var(--red-accent); }
+.progress-bar-fill.purple { background: #a855f7; }
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-data);
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+}
+
+/* ═══════════════════════════════════
+   PDF EXPORT MODAL
+═══════════════════════════════════ */
+
+#export-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(8px);
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+#export-modal-overlay.open { display: flex; }
+
+#export-modal {
+  background: var(--obsidian-800);
+  border: 1px solid var(--obsidian-300);
+  border-radius: var(--radius-xl);
+  padding: 28px 30px;
+  width: 400px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 0 60px rgba(0,0,0,0.8);
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.export-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--obsidian-700);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--obsidian-500);
+}
+.export-step-icon {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--obsidian-500);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.export-step-icon.done {
+  background: var(--teal-20);
+  color: var(--teal);
+}
+.export-step-text { font-size: 11px; color: var(--text-secondary); }
+.export-step-text strong { color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 1px; }
+
+/* ═══════════════════════════════════
+   ENVIRONMENTAL SECTION
+═══════════════════════════════════ */
+
+.env-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.env-card {
+  background: var(--obsidian-700);
+  border: 1px solid var(--obsidian-500);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+}
+.env-card-emoji { font-size: 28px; margin-bottom: 8px; display: block; }
+.env-card-value {
+  font-family: var(--font-data);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--teal);
+  letter-spacing: -0.5px;
+}
+.env-card-unit {
+  font-family: var(--font-data);
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-top: 2px;
+}
+.env-card-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════
+   BOTTOM STATUS BAR
+═══════════════════════════════════ */
+
+#status-bar {
+  position: fixed;
+  bottom: 0;
+  left: var(--sidebar-width);
+  right: 0;
+  height: 40px;
+  background: rgba(8,8,8,0.95);
+  border-top: 1px solid var(--obsidian-500);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-family: var(--font-data);
+  font-size: 10px;
+  color: var(--text-muted);
+  z-index: 90;
+}
+
+.status-bar-left, .status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ═══════════════════════════════════
+   RESPONSIVE ADJUSTMENTS
+═══════════════════════════════════ */
+
+@media (max-width: 1300px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 1100px) {
+  .chart-grid-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  :root { --sidebar-width: 0px; }
+  #sidebar { transform: translateX(-100%); width: 300px; }
+  #sidebar.mobile-open { transform: translateX(0); }
+  #main-content { margin-left: 0; }
+  #status-bar { left: 0; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
 </head>
 <body>
 
-    <div class="admin-bar no-print">
-        <div class="input-group">
-            <label>PROJECT LOGO</label>
-            <input type="file" id="logoInp" accept="image/*" style="width: 180px;">
-        </div>
-        <div class="input-group">
-            <label>CLIENT NAME</label>
-            <input type="text" id="clientName" placeholder="Enter Client Name">
-        </div>
-        <div class="input-group">
-            <label>TOTAL INVESTMENT</label>
-            <input type="number" id="costInp" value="2500000">
-        </div>
-        <div class="input-group">
-            <label>DATA SHEET (CSV)</label>
-            <input type="file" id="csvInp" accept=".csv">
-        </div>
-        <button class="btn-main" onclick="runAnalysis()">GENERATE</button>
-        <button class="btn-sec" onclick="exportPDF()">DOWNLOAD PDF</button>
+<!-- ═══════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════ -->
+<header id="header">
+  <div class="header-brand">
+    <div class="axon-logomark">AX</div>
+    <div class="brand-text-block">
+      <div class="brand-name"><span>AXON</span> Proposer</div>
+      <div class="brand-tagline">Solar Financial Intelligence Engine</div>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <!-- Data status indicator -->
+    <div class="data-status" style="padding:6px 12px;">
+      <span class="status-dot idle" id="data-status-dot"></span>
+      <span id="data-status-text" style="font-family:var(--font-data);font-size:10px;">No data loaded</span>
     </div>
 
-    <div class="proposal-container" id="capture-area">
-        
-        <div class="page">
-            <div class="header-flex">
-                <div class="client-info">
-                    <p>RENEWABLE ENERGY ASSESSMENT</p>
-                    <h1 id="displayClientName">Client Proposal</h1>
-                </div>
-                <div class="logo-box" id="logoDisplay"></div>
-            </div>
+    <button class="btn btn-sm btn-ghost" onclick="downloadTemplate()">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      CSV Template
+    </button>
 
-            <div class="spec-grid">
-                <div class="spec-card">
-                    <p>SOLAR ARRAY</p>
-                    <h3 id="panelSpec">Jinko Solar 555W</h3>
-                    <p>Tier 1 N-Type panels with 25-year linear power warranty.</p>
-                </div>
-                <div class="spec-card">
-                    <p>POWER CONVERSION</p>
-                    <h3 id="inverterSpec">Sigen Hybrid</h3>
-                    <p>High-efficiency conversion with integrated smart management.</p>
-                </div>
-                <div class="spec-card">
-                    <p>ENERGY STORAGE</p>
-                    <h3 id="batterySpec">Lithium HV</h3>
-                    <p>High-voltage battery storage for peak-shaving and backup.</p>
-                </div>
-            </div>
+    <button class="btn btn-sm" id="run-analysis-btn" onclick="runFullAnalysis()" disabled>
+      <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Run Analysis
+    </button>
 
-            <div class="metric-row">
-                <div class="metric-item"><span>ANNUAL YIELD</span><h2 id="metYield">--</h2></div>
-                <div class="metric-item"><span>PERFORMANCE RATIO</span><h2>81.4%</h2></div>
-                <div class="metric-item"><span>SPECIFIC YIELD</span><h2 id="metSpec">1,820</h2></div>
-            </div>
+    <button class="btn btn-sm btn-primary" id="export-btn" onclick="openExportModal()" disabled>
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Export PDF
+    </button>
+  </div>
+</header>
 
-            <h4 style="color: var(--teal); margin: 0 0 20px 0; font-weight: 400; letter-spacing: 1px;">MONTHLY PERFORMANCE RATIO</h4>
-            <div class="chart-container">
-                <canvas id="yieldChart"></canvas>
-            </div>
+<!-- ═══════════════════════════════════════════
+     APP LAYOUT
+═══════════════════════════════════════════ -->
+<div id="app-layout">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside id="sidebar">
+
+    <!-- EPC Logo Upload -->
+    <div>
+      <div class="sidebar-section-title">EPC / Client Branding</div>
+      <div id="logo-drop-zone">
+        <input type="file" id="logo-file-input" accept="image/*">
+        <img id="logo-preview" alt="Company Logo">
+        <div id="logo-drop-content">
+          <div class="dz-icon">🏢</div>
+          <div class="dz-text"><strong>Click or drag</strong> your company logo<br>PNG, JPG, SVG supported</div>
         </div>
-
-        <div class="page" id="page2">
-            <div style="border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 40px;">
-                <h2 style="font-weight: 300; margin: 0;">Financial Projections</h2>
-                <p style="color: var(--teal); font-size: 12px; margin: 5px 0 0 0;">20-YEAR CASH FLOW & ROI ANALYSIS</p>
-            </div>
-
-            <div class="spec-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 40px;">
-                <div class="spec-card" style="border-top: 2px solid var(--gold);">
-                    <p>INVESTMENT PAYBACK</p>
-                    <h2 id="metPayback" style="margin: 5px 0 0 0; font-size: 32px;">--</h2>
-                </div>
-                <div class="spec-card" style="border-top: 2px solid var(--teal);">
-                    <p>20-YEAR NET SAVINGS</p>
-                    <h2 id="metSavings" style="margin: 5px 0 0 0; font-size: 32px;">--</h2>
-                </div>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>YEAR</th>
-                        <th>YIELD (kWh)</th>
-                        <th>GRID RATE</th>
-                        <th>ANNUAL SAVINGS</th>
-                        <th>TAX BENEFIT (12B)</th>
-                        <th>CUMULATIVE (ZAR)</th>
-                    </tr>
-                </thead>
-                <tbody id="financialBody"></tbody>
-            </table>
-        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button class="btn btn-sm btn-ghost" style="flex:1;justify-content:center;font-size:10px;" onclick="clearLogo()">Remove</button>
+      </div>
     </div>
 
+    <!-- CSV Upload -->
+    <div>
+      <div class="sidebar-section-title">Production Data</div>
+      <div id="csv-drop-zone">
+        <input type="file" id="csv-file-input" accept=".csv">
+        <div class="csv-icon-wrap">📊</div>
+        <div class="csv-upload-text">
+          <strong>Upload HelioScope / PVSyst CSV</strong><br>
+          or click to browse
+        </div>
+        <div class="csv-upload-hint">month · pv_yield · peak · std · offpeak</div>
+      </div>
+      <div id="csv-status" style="margin-top:8px;display:none;">
+        <div class="data-status">
+          <span class="status-dot ok"></span>
+          <span id="csv-status-text">12 months loaded</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"><div class="divider-line"></div><div class="divider-text">Project Config</div><div class="divider-line"></div></div>
+
+    <!-- Project Settings -->
+    <div>
+      <div class="sidebar-section-title">System Specifications</div>
+      <div class="field-group">
+        <div class="field">
+          <label>Client / Project Name</label>
+          <input type="text" id="proj-name" placeholder="e.g. Acme Manufacturing Park" value="Unnamed Solar Project">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>System Size (kWp)</label>
+            <input type="number" id="sys-kwp" value="500" min="1" step="1">
+          </div>
+          <div class="field">
+            <label>BESS (kWh)</label>
+            <input type="number" id="sys-bess" value="0" min="0" step="10" placeholder="0">
+          </div>
+        </div>
+        <div class="field">
+          <label>Total Investment (ZAR)</label>
+          <input type="number" id="sys-investment" value="5000000" min="0" step="10000">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tariff Settings -->
+    <div>
+      <div class="sidebar-section-title">Eskom / Municipal Tariff</div>
+      <div class="tariff-grid">
+        <div class="tariff-cell">
+          <div class="tariff-cell-label peak">Peak</div>
+          <input type="number" id="tariff-peak" value="4.82" step="0.01" min="0">
+          <div style="font-family:var(--font-data);font-size:8px;color:var(--text-muted);margin-top:3px;">R/kWh</div>
+        </div>
+        <div class="tariff-cell">
+          <div class="tariff-cell-label std">Standard</div>
+          <input type="number" id="tariff-std" value="2.35" step="0.01" min="0">
+          <div style="font-family:var(--font-data);font-size:8px;color:var(--text-muted);margin-top:3px;">R/kWh</div>
+        </div>
+        <div class="tariff-cell">
+          <div class="tariff-cell-label offpk">Off-Peak</div>
+          <input type="number" id="tariff-off" value="1.12" step="0.01" min="0">
+          <div style="font-family:var(--font-data);font-size:8px;color:var(--text-muted);margin-top:3px;">R/kWh</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Financial Settings -->
+    <div>
+      <div class="sidebar-section-title">Financial Parameters</div>
+      <div class="field-group">
+        <div class="field-row">
+          <div class="field">
+            <label>Escalation %/yr</label>
+            <input type="number" id="fin-escalation" value="12" min="1" max="30" step="0.5">
+          </div>
+          <div class="field">
+            <label>Discount Rate %</label>
+            <input type="number" id="fin-discount" value="10" min="1" max="25" step="0.5">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Degradation %/yr</label>
+            <input type="number" id="fin-degrad" value="0.5" min="0" max="2" step="0.1">
+          </div>
+          <div class="field">
+            <label>Corp Tax Rate %</label>
+            <input type="number" id="fin-tax" value="27" min="0" max="50" step="1">
+          </div>
+        </div>
+        <div class="field">
+          <label>Financing Mode</label>
+          <select id="fin-mode">
+            <option value="outright">Outright Purchase</option>
+            <option value="loan">Bank Loan</option>
+            <option value="ppa">PPA (Power Purchase)</option>
+          </select>
+        </div>
+        <div id="loan-fields" style="display:none;">
+          <div class="field-row" style="margin-top:0;">
+            <div class="field">
+              <label>Prime Rate %</label>
+              <input type="number" id="fin-prime" value="11.75" step="0.25">
+            </div>
+            <div class="field">
+              <label>Margin %</label>
+              <input type="number" id="fin-margin" value="2" step="0.25">
+            </div>
+          </div>
+          <div class="field" style="margin-top:8px;">
+            <label>Loan Term (Years)</label>
+            <input type="number" id="fin-term" value="7" min="1" max="20">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Run Button -->
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" id="sidebar-run-btn" onclick="runFullAnalysis()">
+      <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Generate Analysis
+    </button>
+
+  </aside>
+
+  <!-- ═══ MAIN CONTENT ═══ -->
+  <main id="main-content">
+
+    <!-- KPI Row -->
+    <div class="kpi-grid" id="kpi-grid">
+      <!-- Populated by JS -->
+      <div class="kpi-card card-teal fade-up fade-up-1">
+        <div class="kpi-card-label">Annual Generation <span class="badge badge-muted">kWh</span></div>
+        <div class="kpi-card-value teal" id="kpi-gen">—</div>
+        <div class="kpi-card-sub" id="kpi-gen-sub">Upload CSV to calculate</div>
+        <div class="kpi-card-icon">GEN</div>
+      </div>
+      <div class="kpi-card card-gold fade-up fade-up-2">
+        <div class="kpi-card-label">Year 1 Savings <span class="badge badge-gold">Sec 12B</span></div>
+        <div class="kpi-card-value gold" id="kpi-savings">—</div>
+        <div class="kpi-card-sub" id="kpi-savings-sub">Incl. tax shield</div>
+        <div class="kpi-card-icon">SAV</div>
+      </div>
+      <div class="kpi-card card-teal fade-up fade-up-3">
+        <div class="kpi-card-label">Payback Period <span class="badge badge-teal">Real</span></div>
+        <div class="kpi-card-value white" id="kpi-payback">—</div>
+        <div class="kpi-card-sub" id="kpi-payback-sub">Inflation-adjusted</div>
+        <div class="kpi-card-icon">PBK</div>
+      </div>
+      <div class="kpi-card card-purple fade-up fade-up-4">
+        <div class="kpi-card-label">25-Year NPV <span class="badge badge-muted">ZAR</span></div>
+        <div class="kpi-card-value purple" id="kpi-npv">—</div>
+        <div class="kpi-card-sub" id="kpi-npv-sub">Net present value</div>
+        <div class="kpi-card-icon">NPV</div>
+      </div>
+    </div>
+
+    <!-- IRR / Tax Shield row -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);" id="kpi-row2">
+      <div class="kpi-card card-gold fade-up fade-up-1">
+        <div class="kpi-card-label">Internal Rate of Return</div>
+        <div class="kpi-card-value gold" id="kpi-irr">—</div>
+        <div class="kpi-card-sub">Project IRR over 25 years</div>
+      </div>
+      <div class="kpi-card card-teal fade-up fade-up-2">
+        <div class="kpi-card-label">Section 12B Tax Shield</div>
+        <div class="kpi-card-value teal" id="kpi-taxshield">—</div>
+        <div class="kpi-card-sub">125% write-off @ corp tax rate</div>
+      </div>
+      <div class="kpi-card card-red fade-up fade-up-3">
+        <div class="kpi-card-label">CO₂ Offset / Year</div>
+        <div class="kpi-card-value white" id="kpi-co2">—</div>
+        <div class="kpi-card-sub">Tonnes CO₂e avoided</div>
+      </div>
+    </div>
+
+    <!-- Monthly Production Chart -->
+    <div class="chart-card fade-up fade-up-2" id="production-section">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Monthly Production Analysis</div>
+          <div class="chart-subtitle">PV Yield vs. Grid Consumption by TOU Bucket</div>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:var(--teal);"></div>
+            PV Yield
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:var(--red-accent);opacity:0.8;"></div>
+            Peak
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:var(--gold);opacity:0.8;"></div>
+            Standard
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:#4a9fd8;opacity:0.8;"></div>
+            Off-Peak
+          </div>
+        </div>
+      </div>
+      <div class="chart-body">
+        <div class="chart-canvas-wrap" style="height:280px;" id="prod-chart-wrap">
+          <div class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <div class="empty-state-title">Awaiting Production Data</div>
+            <div class="empty-state-sub">Upload your HelioScope or PVSyst CSV export to visualise monthly generation profiles.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Savings Breakdown + Coverage -->
+    <div class="chart-grid-2">
+      <div class="chart-card fade-up fade-up-3">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Annual Savings Breakdown</div>
+            <div class="chart-subtitle">By time-of-use tariff bucket</div>
+          </div>
+        </div>
+        <div class="chart-body">
+          <div class="chart-canvas-wrap" style="height:220px;" id="savings-chart-wrap">
+            <div class="empty-state" style="padding:32px 16px;">
+              <div class="empty-state-icon">💰</div>
+              <div class="empty-state-title">No Analysis Yet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card fade-up fade-up-4">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Self-Sufficiency Coverage</div>
+            <div class="chart-subtitle">Solar offset of total demand</div>
+          </div>
+        </div>
+        <div class="chart-body">
+          <div id="coverage-section" style="height:220px;display:flex;align-items:center;justify-content:center;">
+            <div class="empty-state" style="padding:32px 16px;">
+              <div class="empty-state-icon">☀️</div>
+              <div class="empty-state-title">No Data</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 20-Year Cashflow Table -->
+    <div class="chart-card fade-up fade-up-3" id="cashflow-section">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">20-Year Financial Roadmap</div>
+          <div class="chart-subtitle">Discounted cash flows with Section 12B, degradation & escalation</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <span class="badge badge-teal" id="cf-mode-badge">Outright</span>
+        </div>
+      </div>
+      <div class="cf-table-wrap" id="cf-table-wrap">
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <div class="empty-state-title">Cash Flow Projection</div>
+          <div class="empty-state-sub">Configure project parameters and run the analysis to generate your 20-year financial roadmap.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NPV Curve -->
+    <div class="chart-card fade-up fade-up-4">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Cumulative NPV & Payback Curve</div>
+          <div class="chart-subtitle">Discounted at <span id="discount-label">10</span>% — break-even highlighted</div>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item">
+            <div class="legend-line" style="background:var(--teal);"></div>
+            Cumulative Cash Flow
+          </div>
+          <div class="legend-item">
+            <div class="legend-line" style="background:var(--gold);border-top:2px dashed var(--gold);"></div>
+            Break-even
+          </div>
+        </div>
+      </div>
+      <div class="chart-body">
+        <div class="chart-canvas-wrap" style="height:250px;" id="npv-chart-wrap">
+          <div class="empty-state">
+            <div class="empty-state-icon">📈</div>
+            <div class="empty-state-title">NPV Curve</div>
+            <div class="empty-state-sub">Runs automatically after analysis.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Environmental Impact -->
+    <div class="chart-card fade-up fade-up-5" id="env-section">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Environmental Impact</div>
+          <div class="chart-subtitle">Lifetime carbon & equivalence metrics</div>
+        </div>
+        <span class="badge badge-teal">25-Year Lifetime</span>
+      </div>
+      <div class="chart-body" id="env-body">
+        <div class="empty-state">
+          <div class="empty-state-icon">🌍</div>
+          <div class="empty-state-title">Environmental Analysis</div>
+          <div class="empty-state-sub">Generated alongside financial analysis.</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Status Bar -->
+<div id="status-bar">
+  <div class="status-bar-left">
+    <div class="status-item">
+      <span class="status-dot idle" id="sb-dot"></span>
+      <span id="sb-msg">Ready — upload CSV or configure manual data</span>
+    </div>
+  </div>
+  <div class="status-bar-right">
+    <span id="sb-kwp">—kWp</span>
+    <span>|</span>
+    <span id="sb-invest">—</span>
+    <span>|</span>
+    <span id="sb-esc">Esc: —%</span>
+    <span>|</span>
+    <span id="sb-time" style="color:var(--text-muted);"></span>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Export Modal -->
+<div id="export-modal-overlay">
+  <div id="export-modal">
+    <div class="modal-title">
+      <div class="axon-logomark" style="width:32px;height:32px;font-size:11px;">AX</div>
+      Generating PDF Proposal
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">
+      Building your bank-grade proposal with <strong style="color:var(--text-primary)">4 pages</strong>. Please wait…
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:6px;" id="export-steps">
+      <div class="export-step" id="step-1">
+        <div class="export-step-icon" id="step-1-icon">1</div>
+        <div class="export-step-text">
+          <strong>Title Page</strong>
+          System overview & key metrics
+        </div>
+      </div>
+      <div class="export-step" id="step-2">
+        <div class="export-step-icon" id="step-2-icon">2</div>
+        <div class="export-step-text">
+          <strong>Production Analysis</strong>
+          Monthly generation charts
+        </div>
+      </div>
+      <div class="export-step" id="step-3">
+        <div class="export-step-icon" id="step-3-icon">3</div>
+        <div class="export-step-text">
+          <strong>Financial Roadmap</strong>
+          20-year cash flow table & NPV
+        </div>
+      </div>
+      <div class="export-step" id="step-4">
+        <div class="export-step-icon" id="step-4-icon">4</div>
+        <div class="export-step-text">
+          <strong>Environmental Impact</strong>
+          Carbon offset & next steps
+        </div>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill teal" id="export-progress" style="width:0%"></div>
+    </div>
+
+    <div id="export-status-text" style="font-family:var(--font-data);font-size:10px;color:var(--text-muted);text-align:center;">
+      Initialising renderer…
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     JAVASCRIPT ENGINE
+═══════════════════════════════════════════ -->
 <script>
-    let rawData = [];
-    let chartObj = null;
+'use strict';
 
-    // --- LOGO PERSISTENCE ---
-    document.getElementById('logoInp').onchange = (e) => {
-        const reader = new FileReader();
-        reader.onload = (f) => {
-            const img = `<img src="${f.target.result}">`;
-            document.getElementById('logoDisplay').innerHTML = img;
-            localStorage.setItem('axon_logo_v4', f.target.result);
-        };
-        reader.readAsDataURL(e.target.files[0]);
+// ═══════════════════════════════════════════════════════════
+// 1. STATE MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+
+const STATE = {
+  csvData: null,          // Parsed 12-month array
+  analysisResult: null,   // Computed financial results
+  logoDataUrl: null,      // Base64 logo for PDF
+  charts: {},             // Chart.js instances
+};
+
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS_LONG  = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+
+// South African emission factor (kgCO2/kWh) — NERSA 2023
+const SA_EMISSION_FACTOR = 0.928;
+
+// ═══════════════════════════════════════════════════════════
+// 2. UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+function fmtR(val, decimals=0) {
+  if (val === null || val === undefined || isNaN(val)) return '—';
+  const abs = Math.abs(val);
+  const sign = val < 0 ? '-' : '';
+  if (abs >= 1_000_000) return `${sign}R${(abs/1_000_000).toFixed(decimals || 2)}M`;
+  if (abs >= 1_000)     return `${sign}R${Math.round(abs).toLocaleString('en-ZA')}`;
+  return `${sign}R${abs.toFixed(2)}`;
+}
+
+function fmtNum(val, decimals=0) {
+  if (val === null || val === undefined || isNaN(val)) return '—';
+  return Math.round(val).toLocaleString('en-ZA');
+}
+
+function fmtKwh(val) {
+  if (!val) return '—';
+  if (val >= 1_000_000) return `${(val/1_000_000).toFixed(2)}M kWh`;
+  if (val >= 1_000)     return `${(val/1_000).toFixed(0)}k kWh`;
+  return `${Math.round(val)} kWh`;
+}
+
+function fmtPct(val, decimals=1) {
+  if (val === null || isNaN(val)) return '—';
+  return `${val.toFixed(decimals)}%`;
+}
+
+function getInput(id, fallback=0) {
+  const v = parseFloat(document.getElementById(id)?.value);
+  return isNaN(v) ? fallback : v;
+}
+
+function getStrInput(id, fallback='') {
+  return document.getElementById(id)?.value?.trim() || fallback;
+}
+
+function setEl(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function showToast(msg, type='ok', duration=3500) {
+  const icons = { ok: '✓', warn: '⚠', err: '✕', info: 'ℹ' };
+  const container = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ'}</span><span class="toast-text">${msg}</span>`;
+  container.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(8px)'; t.style.transition='all 0.3s'; setTimeout(()=>t.remove(), 300); }, duration);
+}
+
+function destroyChart(key) {
+  if (STATE.charts[key]) { STATE.charts[key].destroy(); delete STATE.charts[key]; }
+}
+
+function updateStatusBar() {
+  const kwp = getInput('sys-kwp', 0);
+  const inv = getInput('sys-investment', 0);
+  const esc = getInput('fin-escalation', 12);
+  setEl('sb-kwp', kwp ? `${kwp} kWp` : '—kWp');
+  setEl('sb-invest', inv ? fmtR(inv) : '—');
+  setEl('sb-esc', `Esc: ${esc}%`);
+  setEl('discount-label', getInput('fin-discount', 10));
+  document.getElementById('sb-time').textContent = new Date().toLocaleTimeString('en-ZA', {hour:'2-digit', minute:'2-digit'});
+}
+
+// Live status bar clock
+setInterval(() => {
+  document.getElementById('sb-time').textContent = new Date().toLocaleTimeString('en-ZA', {hour:'2-digit', minute:'2-digit'});
+}, 30000);
+updateStatusBar();
+
+// ═══════════════════════════════════════════════════════════
+// 3. CSV TEMPLATE DOWNLOAD
+// ═══════════════════════════════════════════════════════════
+
+function downloadTemplate() {
+  const headers = ['Month','PV_Yield_kWh','Grid_Usage_Peak','Grid_Usage_Std','Grid_Usage_OffPeak'];
+  // Sample representative SA commercial data
+  const sample = [
+    ['January',  68500, 12400, 22300, 8100],
+    ['February', 72000, 11800, 21500, 7800],
+    ['March',    75000, 12200, 22000, 8000],
+    ['April',    69000, 11500, 20800, 7500],
+    ['May',      62000, 10800, 19500, 7100],
+    ['June',     55000, 10200, 18400, 6700],
+    ['July',     58000, 10500, 18900, 6900],
+    ['August',   65000, 11200, 20200, 7350],
+    ['September',73000, 11800, 21300, 7750],
+    ['October',  78000, 12500, 22500, 8200],
+    ['November', 76000, 12300, 22100, 8050],
+    ['December', 70000, 12000, 21600, 7850],
+  ];
+
+  let csv = headers.join(',') + '\n';
+  sample.forEach(row => { csv += row.join(',') + '\n'; });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'AXON_Production_Template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Template downloaded — fill in your HelioScope / PVSyst data', 'ok');
+}
+
+// ═══════════════════════════════════════════════════════════
+// 4. CSV PARSING (Fuzzy Matching)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Fuzzy-match CSV headers to known AXON fields.
+ * Handles variations: "month", "Month", "MONTH", "pv yield kwh", etc.
+ */
+function fuzzyMatchHeaders(headers) {
+  const map = {};
+  const patterns = {
+    month:   [/month/i],
+    yield:   [/pv.?yield|yield.?kwh|generation|gen.kwh|pv.?gen/i],
+    peak:    [/peak|red.zone|time.of.use.peak/i],
+    std:     [/standard|std|orange|shoulder/i],
+    offpeak: [/off.?peak|off.peak|offpeak|green|low.demand/i],
+  };
+
+  headers.forEach(h => {
+    const clean = h.trim();
+    for (const [key, regexes] of Object.entries(patterns)) {
+      if (regexes.some(r => r.test(clean))) {
+        map[key] = clean;
+        break;
+      }
+    }
+  });
+  return map;
+}
+
+function parseCSVData(text) {
+  const result = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: true });
+  if (!result.data || result.data.length === 0) throw new Error('Empty CSV file');
+
+  const headers = Object.keys(result.data[0]);
+  const fieldMap = fuzzyMatchHeaders(headers);
+
+  if (!fieldMap.yield && !fieldMap.peak) {
+    throw new Error('Could not identify required columns. Please use the AXON template.');
+  }
+
+  const rows = result.data.slice(0, 12).map((row, i) => ({
+    month:   fieldMap.month ? row[fieldMap.month] : MONTHS_LONG[i],
+    yield:   parseFloat(row[fieldMap.yield])   || 0,
+    peak:    parseFloat(row[fieldMap.peak])    || 0,
+    std:     parseFloat(row[fieldMap.std])     || 0,
+    offpeak: parseFloat(row[fieldMap.offpeak]) || 0,
+  }));
+
+  if (rows.length < 12) throw new Error(`Only ${rows.length} months found — need 12.`);
+  return rows;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 5. FINANCIAL ENGINE
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Core computation: runs all financial projections.
+ * Returns a rich result object used by UI & PDF.
+ */
+function computeFinancials(csvData) {
+  const kwp         = getInput('sys-kwp',       500);
+  const investment  = getInput('sys-investment', 5_000_000);
+  const escalation  = getInput('fin-escalation', 12) / 100;
+  const discountRate= getInput('fin-discount',   10) / 100;
+  const degradation = getInput('fin-degrad',     0.5) / 100;
+  const corpTaxRate = getInput('fin-tax',        27)  / 100;
+  const tPeak       = getInput('tariff-peak',    4.82);
+  const tStd        = getInput('tariff-std',     2.35);
+  const tOff        = getInput('tariff-off',     1.12);
+  const finMode     = document.getElementById('fin-mode').value;
+
+  // ── Monthly savings (Year 0 baseline) ──
+  const monthlyData = csvData.map(m => {
+    const totalUsage = m.peak + m.std + m.offpeak;
+    // Direct solar offset: apportion yield across TOU buckets (solar covers daylight/std + some peak)
+    const yieldKwh = m.yield;
+    const peakOffset   = Math.min(m.peak,   yieldKwh * 0.30);
+    const stdOffset    = Math.min(m.std,    yieldKwh * 0.55);
+    const offpeakOffset= Math.min(m.offpeak,yieldKwh * 0.15);
+    const savingsPeak    = peakOffset   * tPeak;
+    const savingsStd     = stdOffset    * tStd;
+    const savingsOffpeak = offpeakOffset * tOff;
+    return {
+      month: m.month,
+      yield: yieldKwh,
+      peakUsage: m.peak, stdUsage: m.std, offpeakUsage: m.offpeak,
+      totalUsage,
+      peakOffset, stdOffset, offpeakOffset,
+      savingsPeak, savingsStd, savingsOffpeak,
+      totalSavings: savingsPeak + savingsStd + savingsOffpeak,
+      coveragePct: totalUsage > 0 ? Math.min(100, yieldKwh / totalUsage * 100) : 0,
     };
+  });
 
-    // --- DATA HANDLING ---
-    document.getElementById('csvInp').onchange = (e) => {
-        Papa.parse(e.target.files[0], {
-            header: true,
-            dynamicTyping: true,
-            skipEmptyLines: true,
-            complete: (res) => {
-                const find = (t) => res.meta.fields.find(c => t.includes(c.trim().toLowerCase()));
-                const yK = find(['pv_yield_kwh', 'yield', 'pv_yield']);
-                const mK = find(['month']);
-                
-                rawData = res.data.map(r => ({
-                    month: r[mK],
-                    yield: r[yK] || 0
-                })).filter(r => r.month);
-                
-                console.log("Mapped Data:", rawData);
-            }
-        });
-    };
+  const annualGenY1   = monthlyData.reduce((s, m) => s + m.yield, 0);
+  const annualSavY1   = monthlyData.reduce((s, m) => s + m.totalSavings, 0);
+  const annualUsage   = monthlyData.reduce((s, m) => s + m.totalUsage, 0);
+  const coveragePct   = annualUsage > 0 ? Math.min(100, annualGenY1 / annualUsage * 100) : 0;
 
-    function runAnalysis() {
-        if(!rawData.length) return alert("Please upload a CSV first.");
-        
-        const client = document.getElementById('clientName').value || "Client Assessment";
-        const cost = parseFloat(document.getElementById('costInp').value);
-        const rate = 2.95; 
-        
-        document.getElementById('displayClientName').innerText = client;
+  // ── Section 12B — 125% immediate write-off in Year 1 ──
+  const sec12bDeduction  = investment * 1.25; // 125% of capex
+  const sec12bTaxShield  = sec12bDeduction * corpTaxRate;
 
-        const y1Yield = rawData.reduce((s, r) => s + r.yield, 0);
-        document.getElementById('metYield').innerText = Math.round(y1Yield).toLocaleString() + " kWh";
+  // ── Loan payment (if applicable) ──
+  let annualLoanPayment = 0;
+  if (finMode === 'loan') {
+    const prime    = getInput('fin-prime',  11.75) / 100;
+    const margin   = getInput('fin-margin', 2)     / 100;
+    const loanRate = prime + margin;
+    const term     = getInput('fin-term',   7);
+    annualLoanPayment = investment * (loanRate * Math.pow(1+loanRate, term)) / (Math.pow(1+loanRate, term) - 1);
+  }
 
-        // Build Table
-        const tbody = document.getElementById('financialBody');
-        tbody.innerHTML = '';
-        let cumulative = -cost;
-        let paybackYear = null;
+  // ── 25-Year Projection ──
+  let cumulativeCashFlow = -investment;
+  let paybackYear = null;
+  const yearlyRows = [];
 
-        for(let y=1; y<=20; y++) {
-            const yrYield = y1Yield * Math.pow(0.995, y-1);
-            const yrSavings = yrYield * (rate * Math.pow(1.12, y-1));
-            const taxShield = (y === 1) ? (cost * 0.27) : 0;
-            cumulative += (yrSavings + taxShield);
+  for (let yr = 1; yr <= 25; yr++) {
+    const degradFactor = Math.pow(1 - degradation, yr - 1);
+    const escalFactor  = Math.pow(1 + escalation,  yr - 1);
+    const generation   = annualGenY1 * degradFactor;
+    const grossSavings = annualSavY1 * degradFactor * escalFactor;
 
-            if(cumulative >= 0 && !paybackYear) paybackYear = y;
+    // Tax shield only in Year 1
+    const taxShield = yr === 1 ? sec12bTaxShield : 0;
 
-            tbody.innerHTML += `
-                <tr>
-                    <td>${y}</td>
-                    <td>${Math.round(yrYield).toLocaleString()}</td>
-                    <td>R ${(rate * Math.pow(1.12, y-1)).toFixed(2)}</td>
-                    <td>R ${Math.round(yrSavings).toLocaleString()}</td>
-                    <td>${taxShield > 0 ? 'R ' + Math.round(taxShield).toLocaleString() : '--'}</td>
-                    <td class="highlight-text">R ${Math.round(cumulative).toLocaleString()}</td>
-                </tr>`;
+    // Loan deduction (if applicable, for loan term years)
+    const loanDeduct = (finMode === 'loan' && yr <= getInput('fin-term', 7)) ? annualLoanPayment : 0;
+
+    const netCashFlow = grossSavings + taxShield - loanDeduct;
+    const discountFactor = 1 / Math.pow(1 + discountRate, yr);
+    const npvCashFlow  = netCashFlow * discountFactor;
+
+    const prevCumulative = cumulativeCashFlow;
+    cumulativeCashFlow += netCashFlow;
+
+    // Precise payback interpolation
+    if (paybackYear === null && cumulativeCashFlow >= 0) {
+      paybackYear = yr - 1 + Math.abs(prevCumulative) / netCashFlow;
+    }
+
+    yearlyRows.push({
+      yr, generation, grossSavings, taxShield, loanDeduct,
+      netCashFlow, npvCashFlow, cumulativeCashFlow,
+      degradFactor, escalFactor,
+    });
+  }
+
+  // ── NPV & IRR ──
+  const totalNPV = yearlyRows.reduce((s, r) => s + r.npvCashFlow, 0) - investment;
+  const irr = computeIRR(investment, yearlyRows.map(r => r.netCashFlow));
+
+  // ── CO₂ Metrics ──
+  const lifetimeGenKwh = yearlyRows.reduce((s, r) => s + r.generation, 0);
+  const co2PerYear     = annualGenY1 * SA_EMISSION_FACTOR / 1000; // tonnes
+  const co2Lifetime    = lifetimeGenKwh * SA_EMISSION_FACTOR / 1000;
+  const treesEquivalent = Math.round(co2Lifetime / 0.022);  // avg tree ~22kg CO2/yr
+  const carsEquivalent  = Math.round(co2PerYear  / 4.6);    // avg car ~4.6t CO2/yr
+
+  return {
+    monthlyData, yearlyRows,
+    annualGenY1, annualSavY1, annualUsage, coveragePct,
+    sec12bTaxShield, sec12bDeduction,
+    investment, paybackYear, totalNPV, irr,
+    co2PerYear, co2Lifetime, treesEquivalent, carsEquivalent,
+    finMode,
+    // Summary by TOU
+    annualSavPeak:    monthlyData.reduce((s,m)=>s+m.savingsPeak, 0),
+    annualSavStd:     monthlyData.reduce((s,m)=>s+m.savingsStd, 0),
+    annualSavOffpeak: monthlyData.reduce((s,m)=>s+m.savingsOffpeak, 0),
+  };
+}
+
+/** Newton-Raphson IRR solver */
+function computeIRR(investment, cashFlows) {
+  let r = 0.15;
+  for (let iter = 0; iter < 100; iter++) {
+    let npv = -investment, dNpv = 0;
+    cashFlows.forEach((cf, i) => {
+      const t = i + 1;
+      npv  += cf / Math.pow(1 + r, t);
+      dNpv -= t * cf / Math.pow(1 + r, t + 1);
+    });
+    if (Math.abs(dNpv) < 1e-10) break;
+    const newR = r - npv / dNpv;
+    if (Math.abs(newR - r) < 1e-8) { r = newR; break; }
+    r = newR;
+  }
+  return isFinite(r) && r > -1 ? r * 100 : null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 6. UI UPDATE FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+function updateKPIs(res) {
+  setEl('kpi-gen',       fmtKwh(res.annualGenY1));
+  setEl('kpi-gen-sub',   `${fmtNum(getInput('sys-kwp',500))} kWp · ${res.monthlyData.length} months`);
+
+  setEl('kpi-savings',   fmtR(res.annualSavY1 + res.sec12bTaxShield));
+  setEl('kpi-savings-sub', `Gross savings + R${fmtNum(res.sec12bTaxShield)} tax shield`);
+
+  setEl('kpi-payback',   res.paybackYear ? `${res.paybackYear.toFixed(1)} yrs` : '>25 yrs');
+  setEl('kpi-payback-sub', `${fmtPct(getInput('fin-escalation',12))} escalation · ${fmtPct(getInput('fin-degrad',0.5))} degrad.`);
+
+  setEl('kpi-npv',       fmtR(res.totalNPV));
+  setEl('kpi-npv-sub',   `Discount rate ${fmtPct(getInput('fin-discount',10))} · 25 years`);
+
+  setEl('kpi-irr',       res.irr !== null ? `${res.irr.toFixed(1)}%` : 'N/A');
+  setEl('kpi-taxshield', fmtR(res.sec12bTaxShield));
+  setEl('kpi-co2',       `${res.co2PerYear.toFixed(0)}t`);
+  setEl('cf-mode-badge', { outright:'Outright', loan:'Bank Loan', ppa:'PPA' }[res.finMode] || 'Outright');
+}
+
+function updateEnvSection(res) {
+  document.getElementById('env-body').innerHTML = `
+    <div class="env-grid">
+      <div class="env-card">
+        <span class="env-card-emoji">🌿</span>
+        <div class="env-card-value">${res.co2PerYear.toFixed(0)}</div>
+        <div class="env-card-unit">Tonnes CO₂e / year</div>
+        <div class="env-card-label">Avoided grid emissions based on SA emission factor (0.928 kg/kWh)</div>
+      </div>
+      <div class="env-card">
+        <span class="env-card-emoji">🌳</span>
+        <div class="env-card-value">${res.treesEquivalent.toLocaleString('en-ZA')}</div>
+        <div class="env-card-unit">Trees equivalent</div>
+        <div class="env-card-label">Lifetime offset equivalent in mature trees planted (@ 22kg CO₂/tree/yr)</div>
+      </div>
+      <div class="env-card">
+        <span class="env-card-emoji">🚗</span>
+        <div class="env-card-value">${res.carsEquivalent.toLocaleString('en-ZA')}</div>
+        <div class="env-card-unit">Cars removed / year</div>
+        <div class="env-card-label">Annual emissions equivalent to removing petrol cars from SA roads</div>
+      </div>
+      <div class="env-card">
+        <span class="env-card-emoji">⚡</span>
+        <div class="env-card-value">${fmtKwh(res.lifetimeGenKwh || res.annualGenY1 * 22)}</div>
+        <div class="env-card-unit">Lifetime generation</div>
+        <div class="env-card-label">Total clean energy produced over 25 years accounting for panel degradation</div>
+      </div>
+      <div class="env-card">
+        <span class="env-card-emoji">💧</span>
+        <div class="env-card-value">${Math.round(res.annualGenY1 * 1.5 / 1000)}k</div>
+        <div class="env-card-unit">Kilolitres water saved</div>
+        <div class="env-card-label">Water savings vs. coal-fired power (est. 1.5L/kWh for coal generation)</div>
+      </div>
+      <div class="env-card">
+        <span class="env-card-emoji">🏭</span>
+        <div class="env-card-value">${(res.co2Lifetime / 1000).toFixed(1)}k</div>
+        <div class="env-card-unit">Tonnes CO₂e lifetime</div>
+        <div class="env-card-label">Total lifetime CO₂ equivalent avoided across the 25-year project period</div>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 7. CHART RENDERERS
+// ═══════════════════════════════════════════════════════════
+
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#1a1a1a',
+      borderColor: '#333',
+      borderWidth: 1,
+      titleColor: '#aaa',
+      bodyColor: '#eee',
+      padding: 10,
+      cornerRadius: 6,
+    }
+  },
+  scales: {
+    x: {
+      grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+      ticks: { color: '#4a4a4a', font: { family: "'JetBrains Mono'", size: 10 } },
+    },
+    y: {
+      grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+      ticks: { color: '#4a4a4a', font: { family: "'JetBrains Mono'", size: 10 } },
+    }
+  }
+};
+
+function renderProductionChart(monthlyData) {
+  const wrap = document.getElementById('prod-chart-wrap');
+  wrap.innerHTML = '<canvas id="prod-chart" role="img" aria-label="Monthly solar production and grid consumption chart"></canvas>';
+  const canvas = document.getElementById('prod-chart');
+  canvas.style.height = '280px';
+
+  destroyChart('production');
+  STATE.charts.production = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: monthlyData.map(m => m.month.toString().slice(0,3)),
+      datasets: [
+        {
+          label: 'PV Yield (kWh)',
+          data: monthlyData.map(m => Math.round(m.yield)),
+          backgroundColor: 'rgba(0,255,217,0.75)',
+          borderColor: '#00FFD9',
+          borderWidth: 1,
+          borderRadius: 3,
+          order: 1,
+        },
+        {
+          label: 'Peak Consumption',
+          data: monthlyData.map(m => Math.round(m.peakUsage)),
+          backgroundColor: 'rgba(255,71,87,0.55)',
+          borderColor: 'rgba(255,71,87,0.8)',
+          borderWidth: 1,
+          borderRadius: 3,
+          order: 2,
+        },
+        {
+          label: 'Standard Consumption',
+          data: monthlyData.map(m => Math.round(m.stdUsage)),
+          backgroundColor: 'rgba(207,174,54,0.5)',
+          borderColor: 'rgba(207,174,54,0.7)',
+          borderWidth: 1,
+          borderRadius: 3,
+          order: 3,
+        },
+        {
+          label: 'Off-Peak Consumption',
+          data: monthlyData.map(m => Math.round(m.offpeakUsage)),
+          backgroundColor: 'rgba(74,159,216,0.5)',
+          borderColor: 'rgba(74,159,216,0.7)',
+          borderWidth: 1,
+          borderRadius: 3,
+          order: 4,
+        },
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        ...CHART_DEFAULTS.scales,
+        y: {
+          ...CHART_DEFAULTS.scales.y,
+          ticks: {
+            ...CHART_DEFAULTS.scales.y.ticks,
+            callback: v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v
+          }
         }
-
-        document.getElementById('metPayback').innerText = paybackYear ? paybackYear + " Years" : ">20 Years";
-        document.getElementById('metSavings').innerText = "R " + Math.round(cumulative).toLocaleString();
-
-        renderChart();
+      },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: {
+          ...CHART_DEFAULTS.plugins.tooltip,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${Math.round(ctx.raw).toLocaleString('en-ZA')} kWh`
+          }
+        }
+      }
     }
+  });
+}
 
-    function renderChart() {
-        const ctx = document.getElementById('yieldChart').getContext('2d');
-        if(chartObj) chartObj.destroy();
-        chartObj = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: rawData.map(r => r.month.substring(0,3).toUpperCase()),
-                datasets: [{
-                    label: 'Expected Yield (kWh)',
-                    data: rawData.map(r => r.yield),
-                    backgroundColor: '#00FFD9',
-                    borderRadius: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false }, ticks: { color: '#666', font: { family: 'JetBrains Mono', size: 10 } } },
-                    y: { grid: { color: '#1A1A1A' }, ticks: { color: '#666' } }
-                }
+function renderSavingsChart(res) {
+  const wrap = document.getElementById('savings-chart-wrap');
+  wrap.innerHTML = '<canvas id="savings-chart" role="img" aria-label="Annual savings breakdown by TOU tariff bucket"></canvas>';
+  const canvas = document.getElementById('savings-chart');
+  canvas.style.height = '220px';
+
+  destroyChart('savings');
+  STATE.charts.savings = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: ['Peak Savings', 'Standard Savings', 'Off-Peak Savings'],
+      datasets: [{
+        data: [
+          Math.round(res.annualSavPeak),
+          Math.round(res.annualSavStd),
+          Math.round(res.annualSavOffpeak),
+        ],
+        backgroundColor: [
+          'rgba(255,71,87,0.75)',
+          'rgba(207,174,54,0.75)',
+          'rgba(0,255,217,0.65)',
+        ],
+        borderColor: ['#FF4757','#CFAE36','#00FFD9'],
+        borderWidth: 1.5,
+        hoverBorderWidth: 2,
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      cutout: '62%',
+      scales: {}, // No axes for doughnut
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: {
+            color: '#666',
+            font: { family: "'JetBrains Mono'", size: 9 },
+            padding: 12,
+            boxWidth: 10, boxHeight: 10,
+            borderRadius: 2,
+          }
+        },
+        tooltip: {
+          ...CHART_DEFAULTS.plugins.tooltip,
+          callbacks: {
+            label: ctx => ` ${ctx.label}: R ${Math.round(ctx.raw).toLocaleString('en-ZA')}`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderCoverageSection(res) {
+  const pct = Math.min(100, res.coveragePct).toFixed(1);
+  const wrap = document.getElementById('coverage-section');
+  wrap.innerHTML = `
+    <div style="width:100%;padding:8px 0;display:flex;flex-direction:column;gap:16px;">
+      <div style="text-align:center;">
+        <div style="font-family:var(--font-data);font-size:48px;font-weight:700;letter-spacing:-3px;color:var(--teal);line-height:1;">${pct}%</div>
+        <div style="font-family:var(--font-data);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;margin-top:4px;">Self-Sufficiency</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;padding:0 8px;">
+        <div>
+          <div class="progress-label"><span>Solar Coverage</span><span style="color:var(--teal);">${pct}%</span></div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill teal" style="width:${pct}%"></div></div>
+        </div>
+        <div>
+          <div class="progress-label"><span>Residual Grid</span><span style="color:var(--text-muted);">${(100-parseFloat(pct)).toFixed(1)}%</span></div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" style="background:var(--obsidian-300);width:${100-parseFloat(pct)}%"></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+          <div style="text-align:center;background:var(--obsidian-700);border-radius:6px;padding:8px;">
+            <div style="font-family:var(--font-data);font-size:15px;font-weight:600;color:var(--teal);">${fmtKwh(res.annualGenY1)}</div>
+            <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;">Annual Yield</div>
+          </div>
+          <div style="text-align:center;background:var(--obsidian-700);border-radius:6px;padding:8px;">
+            <div style="font-family:var(--font-data);font-size:15px;font-weight:600;color:var(--text-secondary);">${fmtKwh(res.annualUsage)}</div>
+            <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;">Total Demand</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCashflowTable(res) {
+  const { yearlyRows, investment } = res;
+
+  const rows = yearlyRows.map(r => {
+    const isPayback = r.cumulativeCashFlow >= 0 && (yearlyRows[r.yr-2]?.cumulativeCashFlow < 0 || r.yr === 1);
+    return `
+      <tr class="${isPayback ? 'payback-row' : ''}">
+        <td>${r.yr}</td>
+        <td>${fmtKwh(r.generation)}</td>
+        <td class="val-pos">${fmtR(r.grossSavings)}</td>
+        <td class="${r.taxShield>0?'val-gold':''}">${r.taxShield > 0 ? fmtR(r.taxShield) : '—'}</td>
+        <td class="${r.loanDeduct>0?'val-neg':''}">${r.loanDeduct > 0 ? `(${fmtR(r.loanDeduct)})` : '—'}</td>
+        <td class="${r.netCashFlow>=0?'val-pos':'val-neg'}">${fmtR(r.netCashFlow)}</td>
+        <td class="${r.npvCashFlow>=0?'val-pos':'val-neg'}">${fmtR(r.npvCashFlow)}</td>
+        <td class="${r.cumulativeCashFlow>=0?'val-pos val-white':'val-neg'}">${fmtR(r.cumulativeCashFlow)}</td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('cf-table-wrap').innerHTML = `
+    <table class="cf-table">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Year</th>
+          <th>Generation</th>
+          <th>Gross Savings</th>
+          <th>12B Shield</th>
+          <th>Loan Cost</th>
+          <th>Net Cash Flow</th>
+          <th>NPV (disc.)</th>
+          <th>Cumulative</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:2px solid var(--obsidian-400);">
+          <td colspan="5" style="color:var(--text-muted);font-size:10px;padding:6px 14px;">Initial Investment</td>
+          <td colspan="1" class="val-neg">(${fmtR(investment)})</td>
+          <td class="val-neg">(${fmtR(investment)})</td>
+          <td class="val-neg">(${fmtR(investment)})</td>
+        </tr>
+        ${rows}
+        <tr style="border-top:1px solid var(--obsidian-300);background:var(--obsidian-700);">
+          <td style="color:var(--text-primary);font-weight:600;">TOTAL</td>
+          <td></td>
+          <td class="val-pos val-white">${fmtR(res.yearlyRows.reduce((s,r)=>s+r.grossSavings,0))}</td>
+          <td class="val-gold">${fmtR(res.sec12bTaxShield)}</td>
+          <td></td>
+          <td></td>
+          <td class="${res.totalNPV>=0?'val-pos val-white':'val-neg'}">${fmtR(res.totalNPV)}</td>
+          <td class="${res.yearlyRows[24]?.cumulativeCashFlow>=0?'val-pos val-white':'val-neg'}">${fmtR(res.yearlyRows[24]?.cumulativeCashFlow)}</td>
+        </tr>
+      </tbody>
+    </table>`;
+}
+
+function renderNPVChart(res) {
+  const wrap = document.getElementById('npv-chart-wrap');
+  wrap.innerHTML = '<canvas id="npv-chart" role="img" aria-label="Cumulative NPV payback curve over 25 years"></canvas>';
+  const canvas = document.getElementById('npv-chart');
+  canvas.style.height = '250px';
+
+  // Build cumulative series (starts from -investment)
+  let cumulative = -res.investment;
+  const cumulativeData = res.yearlyRows.map(r => {
+    cumulative += r.netCashFlow;
+    return Math.round(cumulative);
+  });
+
+  destroyChart('npv');
+  STATE.charts.npv = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: res.yearlyRows.map(r => `Y${r.yr}`),
+      datasets: [
+        {
+          label: 'Cumulative Cash Flow',
+          data: cumulativeData,
+          borderColor: '#00FFD9',
+          borderWidth: 2.5,
+          pointRadius: 3,
+          pointBackgroundColor: '#00FFD9',
+          pointHoverRadius: 5,
+          fill: {
+            target: { value: 0 },
+            above: 'rgba(0,255,217,0.08)',
+            below: 'rgba(255,71,87,0.06)',
+          },
+          tension: 0.35,
+        },
+        {
+          label: 'Break-even',
+          data: Array(25).fill(0),
+          borderColor: 'rgba(207,174,54,0.5)',
+          borderDash: [6,4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+          tension: 0,
+        }
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: {
+          ...CHART_DEFAULTS.scales.x,
+          ticks: {
+            ...CHART_DEFAULTS.scales.x.ticks,
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 13,
+          }
+        },
+        y: {
+          ...CHART_DEFAULTS.scales.y,
+          ticks: {
+            ...CHART_DEFAULTS.scales.y.ticks,
+            callback: v => {
+              const abs = Math.abs(v);
+              const sign = v < 0 ? '-' : '';
+              if (abs >= 1_000_000) return `${sign}R${(abs/1_000_000).toFixed(1)}M`;
+              if (abs >= 1_000)     return `${sign}R${(abs/1000).toFixed(0)}k`;
+              return `${sign}R${Math.round(abs)}`;
             }
-        });
+          }
+        }
+      },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: {
+          ...CHART_DEFAULTS.plugins.tooltip,
+          callbacks: {
+            label: ctx => ctx.datasetIndex === 0
+              ? ` Cumulative: ${fmtR(ctx.raw)}`
+              : ' Break-even: R0'
+          }
+        }
+      }
     }
+  });
+}
 
-    async function exportPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const element = document.getElementById('capture-area');
+// ═══════════════════════════════════════════════════════════
+// 8. MAIN ANALYSIS ORCHESTRATOR
+// ═══════════════════════════════════════════════════════════
 
-        const canvas = await html2canvas(element, { 
-            scale: 2, 
-            backgroundColor: '#050505',
-            useCORS: true 
-        });
+function runFullAnalysis() {
+  if (!STATE.csvData) {
+    showToast('Please upload your production CSV first', 'warn');
+    return;
+  }
 
-        const imgData = canvas.toDataURL('image/png');
-        const pdfWidth = doc.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+  try {
+    document.getElementById('sb-dot').className = 'status-dot warn pulse-dot';
+    setEl('sb-msg', 'Running financial analysis…');
 
-        doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        doc.save(`${document.getElementById('clientName').value}-Solar-Proposal.pdf`);
+    const result = computeFinancials(STATE.csvData);
+    STATE.analysisResult = result;
+
+    // Update all UI sections
+    updateKPIs(result);
+    renderProductionChart(result.monthlyData);
+    renderSavingsChart(result);
+    renderCoverageSection(result);
+    renderCashflowTable(result);
+    renderNPVChart(result);
+    updateEnvSection(result);
+
+    // Enable export
+    document.getElementById('export-btn').disabled = false;
+
+    document.getElementById('sb-dot').className = 'status-dot ok';
+    setEl('sb-msg', `Analysis complete — ${result.annualGenY1.toFixed(0)} kWh/yr · IRR ${result.irr?.toFixed(1)||'—'}% · Payback ${result.paybackYear?.toFixed(1)||'>25'} yrs`);
+
+    showToast(`Analysis complete — ${fmtKwh(result.annualGenY1)} annual generation`, 'ok');
+    updateStatusBar();
+
+  } catch (err) {
+    console.error(err);
+    showToast(`Analysis error: ${err.message}`, 'err');
+    document.getElementById('sb-dot').className = 'status-dot err';
+    setEl('sb-msg', `Error: ${err.message}`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 9. FILE HANDLERS (Logo + CSV)
+// ═══════════════════════════════════════════════════════════
+
+// ── Logo Handler ──
+function initLogoHandler() {
+  const zone  = document.getElementById('logo-drop-zone');
+  const input = document.getElementById('logo-file-input');
+  const img   = document.getElementById('logo-preview');
+  const hint  = document.getElementById('logo-drop-content');
+
+  // Restore from localStorage
+  const saved = localStorage.getItem('axon_epc_logo');
+  if (saved) { setLogo(saved); }
+
+  function setLogo(dataUrl) {
+    STATE.logoDataUrl = dataUrl;
+    img.src = dataUrl;
+    img.style.display = 'block';
+    hint.style.display = 'none';
+    localStorage.setItem('axon_epc_logo', dataUrl);
+  }
+
+  input.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => { setLogo(ev.target.result); showToast('Logo uploaded & saved', 'ok'); };
+    reader.readAsDataURL(file);
+  });
+
+  ['dragover','dragenter'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('drag-over'); }));
+  ['dragleave','dragend'].forEach(ev => zone.addEventListener(ev, () => zone.classList.remove('drag-over')));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) { showToast('Please drop an image file', 'warn'); return; }
+    const reader = new FileReader();
+    reader.onload = ev => { setLogo(ev.target.result); showToast('Logo uploaded & saved', 'ok'); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function clearLogo() {
+  STATE.logoDataUrl = null;
+  const img = document.getElementById('logo-preview');
+  img.style.display = 'none';
+  img.src = '';
+  document.getElementById('logo-drop-content').style.display = 'flex';
+  localStorage.removeItem('axon_epc_logo');
+  showToast('Logo removed', 'info');
+}
+
+// ── CSV Handler ──
+function initCSVHandler() {
+  const zone  = document.getElementById('csv-drop-zone');
+  const input = document.getElementById('csv-file-input');
+
+  function processFile(file) {
+    if (!file || !file.name.endsWith('.csv')) { showToast('Please upload a .csv file', 'warn'); return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        STATE.csvData = parseCSVData(ev.target.result);
+        const dot    = document.getElementById('data-status-dot');
+        const txt    = document.getElementById('data-status-text');
+        dot.className = 'status-dot ok';
+        txt.textContent = `${STATE.csvData.length} months loaded`;
+        document.getElementById('csv-status').style.display = 'block';
+        document.getElementById('csv-status-text').textContent = `✓ ${STATE.csvData.length} months parsed from "${file.name}"`;
+        document.getElementById('run-analysis-btn').disabled   = false;
+        document.getElementById('sidebar-run-btn').style.opacity = '1';
+        setEl('sb-msg', `CSV loaded — click "Run Analysis" to compute`);
+        document.getElementById('sb-dot').className = 'status-dot ok';
+        showToast(`Loaded ${STATE.csvData.length} months of production data`, 'ok');
+        runFullAnalysis();
+      } catch (err) {
+        showToast(`CSV Error: ${err.message}`, 'err');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  input.addEventListener('change', e => processFile(e.target.files[0]));
+
+  ['dragover','dragenter'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('drag-over'); }));
+  ['dragleave','dragend'].forEach(ev => zone.addEventListener(ev, () => zone.classList.remove('drag-over')));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    processFile(e.dataTransfer.files[0]);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// 10. FINANCING MODE TOGGLE
+// ═══════════════════════════════════════════════════════════
+
+document.getElementById('fin-mode').addEventListener('change', function() {
+  document.getElementById('loan-fields').style.display = this.value === 'loan' ? 'block' : 'none';
+  if (STATE.csvData) runFullAnalysis();
+});
+
+// ═══════════════════════════════════════════════════════════
+// 11. PDF EXPORT ENGINE
+// ═══════════════════════════════════════════════════════════
+
+function openExportModal() {
+  if (!STATE.analysisResult) { showToast('Run analysis first', 'warn'); return; }
+  document.getElementById('export-modal-overlay').classList.add('open');
+  // Reset steps
+  [1,2,3,4].forEach(n => {
+    document.getElementById(`step-${n}-icon`).className = 'export-step-icon';
+    document.getElementById(`step-${n}-icon`).textContent = n;
+  });
+  document.getElementById('export-progress').style.width = '0%';
+  document.getElementById('export-status-text').textContent = 'Initialising renderer…';
+  setTimeout(exportPDF, 200);
+}
+
+function closeExportModal() {
+  document.getElementById('export-modal-overlay').classList.remove('open');
+}
+
+async function setExportStep(n, progress, msg) {
+  document.getElementById(`step-${n}-icon`).className = 'export-step-icon done';
+  document.getElementById(`step-${n}-icon`).textContent = '✓';
+  document.getElementById('export-progress').style.width = `${progress}%`;
+  document.getElementById('export-status-text').textContent = msg;
+  await new Promise(r => setTimeout(r, 300));
+}
+
+async function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const res  = STATE.analysisResult;
+  const name = getStrInput('proj-name', 'Solar Project');
+  const kwp  = getInput('sys-kwp', 500);
+  const inv  = getInput('sys-investment', 5_000_000);
+  const today = new Date().toLocaleDateString('en-ZA', { year:'numeric', month:'long', day:'numeric' });
+
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = 210, H = 297;
+
+  // ─── Helpers ───────────────────────────────────────
+  function bgFill(r,g,b)   { pdf.setFillColor(r,g,b);    pdf.rect(0, 0, W, H, 'F'); }
+  function teal()  { pdf.setTextColor(0, 255, 217); }
+  function gold()  { pdf.setTextColor(207, 174, 54); }
+  function white() { pdf.setTextColor(245, 245, 245); }
+  function muted() { pdf.setTextColor(100, 100, 100); }
+  function dim()   { pdf.setTextColor(60, 60, 60); }
+
+  function addFooter(pageNum, total) {
+    // Watermark
+    pdf.setGState(new pdf.GState({ opacity: 0.12 }));
+    muted();
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('POWERED BY AXON SOLAR INTELLIGENCE  ·  CONFIDENTIAL  ·  NOT FOR DISTRIBUTION', W/2, H-8, { align:'center' });
+    pdf.setGState(new pdf.GState({ opacity: 1 }));
+
+    // Page number
+    dim();
+    pdf.setFontSize(8);
+    pdf.text(`Page ${pageNum} of ${total}`, W-12, H-8, { align:'right' });
+
+    // Bottom accent line
+    pdf.setDrawColor(0, 255, 217);
+    pdf.setLineWidth(0.5);
+    pdf.line(0, H-14, W, H-14);
+  }
+
+  // ════════════════════════════════════════
+  // PAGE 1 — TITLE PAGE
+  // ════════════════════════════════════════
+  bgFill(8,8,8);
+
+  // Teal accent bar — top
+  pdf.setFillColor(0, 255, 217);
+  pdf.rect(0, 0, W, 3, 'F');
+
+  // Logo (if uploaded)
+  if (STATE.logoDataUrl) {
+    try { pdf.addImage(STATE.logoDataUrl, 30, 14, 40, 18, '', 'FAST'); } catch(e){}
+  }
+
+  // AXON mark top-right
+  pdf.setFillColor(0, 255, 217);
+  pdf.roundedRect(W-44, 10, 34, 20, 3, 3, 'F');
+  pdf.setFont('helvetica','bold');
+  pdf.setFontSize(14);
+  pdf.setTextColor(8,8,8);
+  pdf.text('AXON', W-27, 23, { align:'center' });
+
+  // Title block
+  muted();
+  pdf.setFont('helvetica','normal');
+  pdf.setFontSize(9);
+  pdf.text('SOLAR ENERGY FINANCIAL PROPOSAL', 30, 56);
+
+  white();
+  pdf.setFont('helvetica','bold');
+  pdf.setFontSize(30);
+  pdf.text(name, 30, 72);
+
+  pdf.setFontSize(13);
+  pdf.setFont('helvetica','normal');
+  muted();
+  pdf.text(`${kwp} kWp Photovoltaic System  ·  Section 12B Optimised`, 30, 82);
+
+  // Divider
+  pdf.setDrawColor(30,30,30);
+  pdf.setLineWidth(0.5);
+  pdf.line(30, 88, W-30, 88);
+
+  // ── KPI Boxes ──
+  const kpis = [
+    { label: 'Annual Generation', value: fmtKwh(res.annualGenY1), color: [0,255,217] },
+    { label: 'Year 1 Savings',    value: fmtR(res.annualSavY1 + res.sec12bTaxShield), color: [207,174,54] },
+    { label: 'Payback Period',    value: res.paybackYear ? `${res.paybackYear.toFixed(1)} yrs` : '>25 yrs', color: [245,245,245] },
+    { label: '25-Year NPV',       value: fmtR(res.totalNPV), color: [192,132,252] },
+    { label: 'Project IRR',       value: res.irr ? `${res.irr.toFixed(1)}%` : 'N/A', color: [207,174,54] },
+    { label: 'Tax Shield (12B)',  value: fmtR(res.sec12bTaxShield), color: [0,255,217] },
+  ];
+
+  const kpiBoxW = (W-60)/3, kpiBoxH = 22;
+  kpis.forEach((k, i) => {
+    const col = i % 3, row = Math.floor(i/3);
+    const x = 30 + col * (kpiBoxW + 5);
+    const y = 96 + row * (kpiBoxH + 6);
+    pdf.setFillColor(18,18,18);
+    pdf.roundedRect(x, y, kpiBoxW, kpiBoxH, 2, 2, 'F');
+    pdf.setDrawColor(36,36,36);
+    pdf.setLineWidth(0.3);
+    pdf.roundedRect(x, y, kpiBoxW, kpiBoxH, 2, 2, 'S');
+    // Top accent
+    pdf.setFillColor(...k.color);
+    pdf.roundedRect(x, y, kpiBoxW, 1, 0.5, 0.5, 'F');
+    // Label
+    pdf.setFontSize(7); pdf.setFont('helvetica','normal');
+    pdf.setTextColor(80,80,80);
+    pdf.text(k.label.toUpperCase(), x+5, y+7);
+    // Value
+    pdf.setFontSize(12); pdf.setFont('helvetica','bold');
+    pdf.setTextColor(...k.color);
+    pdf.text(k.value, x+5, y+17);
+  });
+
+  // ── Section 12B Callout ──
+  const cY = 162;
+  pdf.setFillColor(0,255,217,0.06);
+  pdf.setFillColor(10,28,26);
+  pdf.roundedRect(30, cY, W-60, 32, 3, 3, 'F');
+  pdf.setDrawColor(0,80,70);
+  pdf.setLineWidth(0.4);
+  pdf.roundedRect(30, cY, W-60, 32, 3, 3, 'S');
+  teal();
+  pdf.setFontSize(9); pdf.setFont('helvetica','bold');
+  pdf.text('SECTION 12B TAX INCENTIVE — INCOME TAX ACT', 38, cY+8);
+  white();
+  pdf.setFontSize(8); pdf.setFont('helvetica','normal');
+  pdf.text(`This project qualifies for Section 12B of the Income Tax Act, allowing a 125% immediate`, 38, cY+15);
+  pdf.text(`write-off in Year 1. At a ${getInput('fin-tax',27)}% corporate tax rate, the effective tax shield is `, 38, cY+21);
+  gold();
+  pdf.setFont('helvetica','bold');
+  pdf.text(`${fmtR(res.sec12bTaxShield)}`, 38 + pdf.getTextWidth(`At a ${getInput('fin-tax',27)}% corporate tax rate, the effective tax shield is `), cY+21);
+  white();
+  pdf.setFont('helvetica','normal');
+  pdf.text('— reducing the effective cost of the system.', 38, cY+27);
+
+  // ── Project Details ──
+  const detY = 204;
+  muted();
+  pdf.setFontSize(8); pdf.setFont('helvetica','normal');
+  const details = [
+    ['Report Date', today],
+    ['System Size', `${kwp} kWp`],
+    ['Total Investment', fmtR(inv)],
+    ['BESS Capacity', `${getInput('sys-bess',0)} kWh`],
+    ['Financing Mode', { outright:'Outright Purchase', loan:'Bank Loan', ppa:'Power Purchase Agreement' }[res.finMode]],
+    ['Escalation Rate', `${getInput('fin-escalation',12)}%/year`],
+    ['Panel Degradation', `${getInput('fin-degrad',0.5)}%/year`],
+  ];
+  details.forEach(([label, val], i) => {
+    const col = i%2, row = Math.floor(i/2);
+    const x = 30 + col*(W-60)/2, y = detY + row*10;
+    pdf.setTextColor(70,70,70);
+    pdf.text(label, x, y);
+    white();
+    pdf.text(val, x + 55, y);
+    muted();
+  });
+
+  addFooter(1, 4);
+  await setExportStep(1, 25, 'Title page rendered…');
+
+  // ════════════════════════════════════════
+  // PAGE 2 — PRODUCTION ANALYSIS
+  // ════════════════════════════════════════
+  pdf.addPage();
+  bgFill(8,8,8);
+  pdf.setFillColor(0,255,217); pdf.rect(0,0,W,3,'F');
+
+  // Header
+  white(); pdf.setFont('helvetica','bold'); pdf.setFontSize(18);
+  pdf.text('Production Analysis', 30, 24);
+  muted(); pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
+  pdf.text('Monthly PV Yield vs. Grid Consumption — Time-of-Use Breakdown', 30, 31);
+  pdf.setDrawColor(30,30,30); pdf.line(30,35,W-30,35);
+
+  // Render production chart to canvas, then capture
+  const prodCanvas = document.getElementById('prod-chart');
+  if (prodCanvas) {
+    const prodImg = await html2canvas(prodCanvas, { backgroundColor:'#111111', scale:2 });
+    const prodData = prodImg.toDataURL('image/png');
+    pdf.addImage(prodData, 'PNG', 20, 40, W-40, 70);
+  }
+
+  // Monthly data table
+  const tY = 118;
+  const colW = (W-60)/6;
+  const headers = ['Month','PV Yield','Peak','Standard','Off-Peak','Coverage'];
+  headers.forEach((h, i) => {
+    pdf.setFontSize(7); pdf.setFont('helvetica','bold');
+    pdf.setTextColor(60,60,60);
+    pdf.text(h.toUpperCase(), 30 + i*colW + (i===0?0:colW-2), tY, { align: i===0?'left':'right' });
+  });
+  pdf.setDrawColor(30,30,30); pdf.line(30,tY+2,W-30,tY+2);
+
+  res.monthlyData.forEach((m, i) => {
+    const y = tY + 9 + i*9;
+    if (i%2===0) { pdf.setFillColor(14,14,14); pdf.rect(28,y-5,W-56,8,'F'); }
+    const vals = [
+      m.month.toString().slice(0,3),
+      `${Math.round(m.yield).toLocaleString()} kWh`,
+      `${Math.round(m.peakUsage).toLocaleString()} kWh`,
+      `${Math.round(m.stdUsage).toLocaleString()} kWh`,
+      `${Math.round(m.offpeakUsage).toLocaleString()} kWh`,
+      `${m.coveragePct.toFixed(1)}%`,
+    ];
+    vals.forEach((v, j) => {
+      pdf.setFontSize(8);
+      if (j===0) { muted(); pdf.setFont('helvetica','normal'); pdf.text(v, 30, y); }
+      else if (j===1) { teal(); pdf.setFont('helvetica','bold'); pdf.text(v, 30+j*colW+colW-2, y, {align:'right'}); }
+      else if (j===5) { gold(); pdf.setFont('helvetica','bold'); pdf.text(v, 30+j*colW+colW-2, y, {align:'right'}); }
+      else { white(); pdf.setFont('helvetica','normal'); pdf.text(v, 30+j*colW+colW-2, y, {align:'right'}); }
+    });
+  });
+
+  // Summary totals
+  const totY = tY + 9 + res.monthlyData.length*9 + 4;
+  pdf.setDrawColor(40,40,40); pdf.line(30,totY-2,W-30,totY-2);
+  pdf.setFontSize(8); pdf.setFont('helvetica','bold');
+  muted(); pdf.text('ANNUAL TOTAL', 30, totY+4);
+  teal(); pdf.text(`${Math.round(res.annualGenY1).toLocaleString()} kWh`, 30+colW+colW-2, totY+4, {align:'right'});
+  white();
+  [res.monthlyData.reduce((s,m)=>s+m.peakUsage,0), res.monthlyData.reduce((s,m)=>s+m.stdUsage,0), res.monthlyData.reduce((s,m)=>s+m.offpeakUsage,0)].forEach((v,i)=>{
+    pdf.text(`${Math.round(v).toLocaleString()} kWh`, 30+(i+2)*colW+colW-2, totY+4, {align:'right'});
+  });
+  gold(); pdf.text(`${res.coveragePct.toFixed(1)}%`, 30+5*colW+colW-2, totY+4, {align:'right'});
+
+  addFooter(2, 4);
+  await setExportStep(2, 50, 'Production charts rendered…');
+
+  // ════════════════════════════════════════
+  // PAGE 3 — FINANCIAL ROADMAP
+  // ════════════════════════════════════════
+  pdf.addPage();
+  bgFill(8,8,8);
+  pdf.setFillColor(207,174,54); pdf.rect(0,0,W,3,'F');
+
+  white(); pdf.setFont('helvetica','bold'); pdf.setFontSize(18);
+  pdf.text('20-Year Financial Roadmap', 30, 24);
+  muted(); pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
+  pdf.text(`Discounted at ${getInput('fin-discount',10)}% · Escalation ${getInput('fin-escalation',12)}%/yr · Degradation ${getInput('fin-degrad',0.5)}%/yr`, 30, 31);
+  pdf.setDrawColor(30,30,30); pdf.line(30,35,W-30,35);
+
+  // Cashflow table (first 20 years)
+  const cfY = 42;
+  const cfCols = ['Year','Generation','Gross Savings','12B Shield','Loan Cost','Net Cash Flow','Cumulative'];
+  const cfColW = (W-50)/7;
+  cfCols.forEach((h,i)=>{
+    pdf.setFontSize(6.5); pdf.setFont('helvetica','bold'); pdf.setTextColor(60,60,60);
+    pdf.text(h.toUpperCase(), 25+(i*cfColW)+(i===0?0:cfColW-2), cfY, {align:i===0?'left':'right'});
+  });
+  pdf.setDrawColor(30,30,30); pdf.line(25,cfY+2,W-25,cfY+2);
+
+  res.yearlyRows.slice(0,20).forEach((r,i) => {
+    const y = cfY + 9 + i*9.5;
+    if (r.cumulativeCashFlow >= 0 && (res.yearlyRows[i-1]?.cumulativeCashFlow < 0 || i===0)) {
+      pdf.setFillColor(0,40,34); pdf.rect(23,y-5.5,W-46,8.5,'F');
+    } else if (i%2===0) {
+      pdf.setFillColor(12,12,12); pdf.rect(23,y-5.5,W-46,8.5,'F');
     }
+    const vals = [
+      `Year ${r.yr}`,
+      fmtKwh(r.generation),
+      fmtR(r.grossSavings),
+      r.taxShield>0 ? fmtR(r.taxShield) : '—',
+      r.loanDeduct>0 ? `(${fmtR(r.loanDeduct)})` : '—',
+      fmtR(r.netCashFlow),
+      fmtR(r.cumulativeCashFlow),
+    ];
+    vals.forEach((v, j) => {
+      pdf.setFontSize(7.5);
+      if (j===0)      { muted(); pdf.setFont('h','n'); pdf.text(v,25,y); }
+      else if (j===2) { teal();  pdf.setFont('h','b'); pdf.text(v,25+j*cfColW+cfColW-2,y,{align:'right'}); }
+      else if (j===3) { gold();  pdf.setFont('h','b'); pdf.text(v,25+j*cfColW+cfColW-2,y,{align:'right'}); }
+      else if (j===4 && r.loanDeduct>0) { pdf.setTextColor(255,71,87); pdf.setFont('h','n'); pdf.text(v,25+j*cfColW+cfColW-2,y,{align:'right'}); }
+      else if (j===5) {
+        if (r.netCashFlow>=0) teal(); else pdf.setTextColor(255,71,87);
+        pdf.setFont('h','b'); pdf.text(v,25+j*cfColW+cfColW-2,y,{align:'right'});
+      }
+      else if (j===6) {
+        if (r.cumulativeCashFlow>=0) { white(); pdf.setFont('h','b'); } else { pdf.setTextColor(255,71,87); pdf.setFont('h','n'); }
+        pdf.text(v,25+j*cfColW+cfColW-2,y,{align:'right'});
+      }
+      else { white(); pdf.setFont('h','n'); pdf.text(v,25+j*cfColW+cfColW-2,y,{align:'right'}); }
+    });
+  });
+
+  // NPV Chart capture
+  const npvCanvas = document.getElementById('npv-chart');
+  if (npvCanvas) {
+    const npvImg = await html2canvas(npvCanvas, { backgroundColor:'#111111', scale:1.5 });
+    pdf.addImage(npvImg.toDataURL('image/png'), 'PNG', 25, 250, W-50, 32);
+  }
+
+  addFooter(3, 4);
+  await setExportStep(3, 75, 'Financial tables rendered…');
+
+  // ════════════════════════════════════════
+  // PAGE 4 — ENVIRONMENTAL IMPACT & NEXT STEPS
+  // ════════════════════════════════════════
+  pdf.addPage();
+  bgFill(8,8,8);
+  pdf.setFillColor(0,100,80); pdf.rect(0,0,W,3,'F');
+
+  white(); pdf.setFont('helvetica','bold'); pdf.setFontSize(18);
+  pdf.text('Environmental Impact & Next Steps', 30, 24);
+  muted(); pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
+  pdf.text('25-Year lifetime projections · SA emission factor 0.928 kg CO₂/kWh (NERSA 2023)', 30, 31);
+  pdf.setDrawColor(30,30,30); pdf.line(30,35,W-30,35);
+
+  // Environmental cards
+  const envItems = [
+    { emoji:'🌿', value:`${res.co2PerYear.toFixed(0)}t`,    unit:'CO₂e / Year',          desc:'Avoided grid emissions' },
+    { emoji:'🌳', value:res.treesEquivalent.toLocaleString(), unit:'Trees Equivalent',       desc:'Lifetime offset in trees' },
+    { emoji:'🚗', value:res.carsEquivalent.toString(),       unit:'Cars Off The Road',       desc:'Annual equivalent' },
+    { emoji:'⚡', value:fmtKwh(res.annualGenY1 * 22),       unit:'Lifetime Generation',      desc:'Over 25 years' },
+    { emoji:'💧', value:`${Math.round(res.annualGenY1*1.5/1000)}kL`, unit:'Water Saved/yr', desc:'vs. coal-fired equivalent' },
+    { emoji:'🏭', value:`${(res.co2Lifetime/1000).toFixed(1)}kt`, unit:'Lifetime CO₂e',     desc:'Total offset across 25 years' },
+  ];
+
+  const envW = (W-60)/3, envH = 42;
+  envItems.forEach((item, i) => {
+    const col = i%3, row = Math.floor(i/3);
+    const x = 30+col*(envW+5), y = 44+row*(envH+8);
+    pdf.setFillColor(14,22,20); pdf.roundedRect(x,y,envW,envH,3,3,'F');
+    pdf.setDrawColor(0,60,50); pdf.setLineWidth(0.3); pdf.roundedRect(x,y,envW,envH,3,3,'S');
+    pdf.setFontSize(18); pdf.text(item.emoji, x+8, y+16);
+    teal(); pdf.setFont('helvetica','bold'); pdf.setFontSize(14);
+    pdf.text(item.value, x+envW-8, y+14, {align:'right'});
+    pdf.setFontSize(7); pdf.setFont('helvetica','normal');
+    pdf.setTextColor(0,180,155);
+    pdf.text(item.unit.toUpperCase(), x+envW-8, y+20, {align:'right'});
+    muted(); pdf.setFontSize(7.5);
+    pdf.text(item.desc, x+8, y+32);
+  });
+
+  // Next Steps
+  const nsY = 145;
+  pdf.setFillColor(18,18,18); pdf.roundedRect(30, nsY, W-60, 80, 4,4,'F');
+  pdf.setDrawColor(36,36,36); pdf.setLineWidth(0.3); pdf.roundedRect(30, nsY, W-60, 80, 4,4,'S');
+
+  teal(); pdf.setFont('helvetica','bold'); pdf.setFontSize(11);
+  pdf.text('NEXT STEPS TO PROCEED', 40, nsY+12);
+
+  const steps = [
+    { n:'01', title:'Technical Site Assessment', body:'On-site survey to verify roof/ground structural capacity, shading analysis, and electrical reticulation.' },
+    { n:'02', title:'Detailed Engineering & Proposal',  body:'Finalise HelioScope simulation, single-line diagram, and Bill of Materials for your specific site.' },
+    { n:'03', title:'Finance & Legal',             body:'Select financing structure (outright, loan, or PPA). Section 12B advisor review recommended.' },
+    { n:'04', title:'Construction & Commissioning',body:'Typical EPC timeline: 6–14 weeks depending on system size. COC issued on completion.' },
+  ];
+
+  steps.forEach((s, i) => {
+    const y = nsY + 22 + i*14;
+    pdf.setFillColor(0,255,217); pdf.roundedRect(40, y-5, 8, 8, 1,1,'F');
+    pdf.setFontSize(7); pdf.setFont('helvetica','bold'); pdf.setTextColor(8,8,8);
+    pdf.text(s.n, 44, y, {align:'center'});
+    white(); pdf.setFont('helvetica','bold'); pdf.setFontSize(8);
+    pdf.text(s.title, 52, y);
+    muted(); pdf.setFont('helvetica','normal'); pdf.setFontSize(7.5);
+    pdf.text(s.body, 52, y+5.5, { maxWidth: W-90 });
+  });
+
+  // Disclaimer
+  const disY = nsY + 92;
+  pdf.setFontSize(7); muted(); pdf.setFont('helvetica','normal');
+  pdf.text('DISCLAIMER: All financial projections are estimates based on the data provided and market assumptions at the time of analysis.', 30, disY);
+  pdf.text('Actual results may vary. This document does not constitute financial advice. Consult a qualified financial advisor before making investment decisions.', 30, disY+5);
+
+  // Prepared by
+  teal(); pdf.setFontSize(8); pdf.setFont('helvetica','bold');
+  pdf.text('Prepared by AXON Solar Intelligence Engine', 30, disY+16);
+  muted(); pdf.setFont('helvetica','normal'); pdf.setFontSize(7);
+  pdf.text(`Report generated: ${today}`, 30, disY+21);
+
+  addFooter(4, 4);
+  await setExportStep(4, 100, 'PDF complete!');
+
+  // ── Save ──
+  const filename = `AXON-Proposal-${name.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.pdf`;
+  pdf.save(filename);
+  showToast(`PDF saved: ${filename}`, 'ok', 5000);
+  setTimeout(closeExportModal, 800);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 12. INIT
+// ═══════════════════════════════════════════════════════════
+
+(function init() {
+  initLogoHandler();
+  initCSVHandler();
+  updateStatusBar();
+
+  // Sidebar input change handlers → update status bar
+  ['sys-kwp','sys-investment','fin-escalation','fin-discount'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', updateStatusBar);
+  });
+
+  // Demo: load sample data automatically so the dashboard isn't empty
+  const sampleCSV = [
+    ['January',  68500, 12400, 22300, 8100],
+    ['February', 72000, 11800, 21500, 7800],
+    ['March',    75000, 12200, 22000, 8000],
+    ['April',    69000, 11500, 20800, 7500],
+    ['May',      62000, 10800, 19500, 7100],
+    ['June',     55000, 10200, 18400, 6700],
+    ['July',     58000, 10500, 18900, 6900],
+    ['August',   65000, 11200, 20200, 7350],
+    ['September',73000, 11800, 21300, 7750],
+    ['October',  78000, 12500, 22500, 8200],
+    ['November', 76000, 12300, 22100, 8050],
+    ['December', 70000, 12000, 21600, 7850],
+  ].map(r => ({
+    month: r[0], yield: r[1], peak: r[2], std: r[3], offpeak: r[4]
+  }));
+
+  STATE.csvData = sampleCSV;
+
+  const dot = document.getElementById('data-status-dot');
+  dot.className = 'status-dot ok';
+  document.getElementById('data-status-text').textContent = 'Sample data loaded';
+  document.getElementById('run-analysis-btn').disabled = false;
+  document.getElementById('export-btn').disabled = false;
+
+  // Slight delay so fonts/charts render properly
+  setTimeout(runFullAnalysis, 400);
+})();
 </script>
+
 </body>
 </html>
